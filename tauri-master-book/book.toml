@@ -1,0 +1,43 @@
+[book]
+authors = ["codecow"]
+language = "zh-CN"
+multilingual = false
+src = "src"
+title = "从零到高级：Tauri 2.x 工程实战 —— 用 Rust + React 打造 CloudTone 音乐播放器"
+description = "零前端基础起步，全中文讲解，以生产级音乐播放器为贯穿项目，系统掌握 Tauri 2.x、Rust 后端工程、React/TypeScript 前端、跨平台打包与分发，直指 Tauri 高级工程师岗位。"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+mathjax-support = true
+git-repository-url = "https://github.com/zhenbodou/tauri_claude_tutorial"
+edit-url-template = "https://github.com/zhenbodou/tauri_claude_tutorial/edit/main/tauri-master-book/{path}"
+site-url = "/tauri_claude_tutorial/"
+copy-fonts = true
+additional-css = []
+additional-js = []
+
+[output.html.playground]
+editable = false
+copyable = true
+copy-js = true
+line-numbers = true
+runnable = false
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+
+[output.html.fold]
+enable = true
+level = 1
+
+[rust]
+edition = "2021"
