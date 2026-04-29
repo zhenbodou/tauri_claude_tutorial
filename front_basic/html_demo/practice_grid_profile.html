@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Grid 个人主页骨架</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+      }
+
+      .page {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        grid-template-rows: 60px 1fr;
+        grid-template-areas:
+          "header header"
+          "sidebar content";
+        min-height: 100vh;
+      }
+
+      .header {
+        grid-area: header;
+        background-color: #1f2937;
+        color: white;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      .sidebar {
+        grid-area: sidebar;
+        background-color: #e5e7eb;
+        padding: 20px;
+      }
+
+      .content {
+        grid-area: content;
+        background-color: #f9fafb;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">个人主页</header>
+      <nav class="sidebar">左侧导航</nav>
+      <main class="content">这里是右侧内容区，会占用剩余空间。</main>
+    </div>
+  </body>
+</html>

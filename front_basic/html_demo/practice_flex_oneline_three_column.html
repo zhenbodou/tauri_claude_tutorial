@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Flex 顶部导航栏</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+      }
+
+      .navbar {
+        display: flex;
+        align-items: center;
+        padding: 16px 32px;
+        background-color: #111827;
+        color: white;
+      }
+
+      .logo {
+        font-size: 22px;
+        font-weight: bold;
+      }
+
+      .menu {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        flex: 1;
+      }
+
+      .menu a {
+        color: white;
+        text-decoration: none;
+      }
+
+      .login {
+        border: none;
+        border-radius: 6px;
+        padding: 8px 18px;
+        background-color: #2563eb;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="logo">Logo</div>
+
+      <div class="menu">
+        <a href="#">首页</a>
+        <a href="#">发现</a>
+        <a href="#">我的</a>
+      </div>
+
+      <button class="login">登录</button>
+    </nav>
+  </body>
+</html>

@@ -1,661 +1,799 @@
-# 第 4 章 JavaScript 与 TypeScript 深度指南
+# 第 4 章 JavaScript 与 TypeScript（从零开始）
 
-> 本章目标：从"能看懂"升级到"能设计"。每节都带着 Rust 视角对照讲，让你少走弯路。读完能在 TypeScript 里游刃有余地描述任何领域模型，并看透 React 源码里那些奇怪的类型签名。
+> **本章继续假设你没基础**。HTML 给了页面骨架，CSS 给了外观，这一章的 JavaScript 负责让页面**会响应**——点击按钮弹窗、输入搜索词过滤结果、拖进度条改音量。没有 JS 的网页就是一张贴纸。本章末尾会引入 TypeScript，它只是"**给 JS 加上类型检查**"，避免一类粗心错误。
 
-## 本章目标
+## 零、先问几个问题
 
-- JavaScript：类型语义、对象与函数、闭包、this、迭代器、异步与事件循环、模块、错误处理。
-- TypeScript：基础 + 进阶类型系统（条件、映射、模板字面量、`infer`、`satisfies`）、推断与收窄、工程化。
-- 从"写出来能跑"到"写出来类型永远对、重构永远安全"。
+**JavaScript 在哪里运行？**
+- 浏览器里（包括 Tauri 的 WebView 窗口）——操作页面、发网络请求。
+- Node.js 里（服务器或命令行工具）——读写文件、启 HTTP 服务。
 
-## 一、JavaScript 的心智模型
+本书只关心浏览器里的 JS（Tauri 前端就是这个场景）。
 
-JavaScript 是**单线程 + 事件循环 + 动态类型**的语言。值分两大类：**原始值**（primitives）和**对象引用**。
+**怎么最快试一段 JS？**
+打开任意浏览器，按 **F12** 打开开发者工具，切到 **Console（控制台）** 标签。里面就能直接输入一行 JS 按回车执行：
 
 ```js
-const a = 1;        // primitive
-const b = a;        // 复制值
-const o = { x: 1 }; // reference
-const p = o;        // 复制引用，o 和 p 指向同一个对象
-p.x = 2;            // o.x 也是 2
+console.log("Hello");       // 控制台打印 "Hello"
+1 + 2                        // 回显 3
+Math.random()                // 回显一个 0~1 的随机数
 ```
 
-Rust 工程师务必记住：**JS 所有对象默认都是引用语义**，你把一个对象"传给函数"其实是传引用。纯函数化要自己 `{...obj}` 或用 Immer。
+**或者**在 HTML 里这样写，一行代码验证：
 
-原始类型：`number`、`string`、`boolean`、`null`、`undefined`、`symbol`、`bigint`。其它都是对象。
-
-### 1.1 `null` vs `undefined`
-
-- `undefined`：系统给的"没值"（未赋值变量、函数无返回、对象没这个字段）。
-- `null`：你主动赋的"空"。
-
-现代 TS 项目里，大多数地方都用 `undefined`，只有 API 约定需要时（比如 JSON 里的 `null`）才用 `null`。TS 的 `strictNullChecks` 会让两者都显式化。
-
-### 1.2 相等比较
-
-- `===` / `!==`：严格相等。优先用它。
-- `==` / `!=`：会做类型强制转换。几乎永远别用。
-- `Object.is(a, b)`：跟 `===` 很像，区别是 `Object.is(NaN, NaN) === true` 且 `Object.is(0, -0) === false`。React 内部用它判断 state 是否变化。
-
-### 1.3 类型转换暗礁
-
-```js
-Number("");        // 0
-Number(" ");       // 0
-Number("12abc");   // NaN
-Boolean("");       // false
-Boolean("false");  // true（非空字符串都真）
-Boolean(0);        // false
-[] + [];           // ""
-[] + {};           // "[object Object]"
+```html
+<!doctype html>
+<html>
+  <body>
+    <h1 id="title">Hello</h1>
+    <button id="btn">点我</button>
+    <script>
+      document.getElementById("btn").addEventListener("click", () => {
+        document.getElementById("title").textContent = "被点到了！";
+      });
+    </script>
+  </body>
+</html>
 ```
 
-JS 的"趣味代码"大部分来自这里。写业务代码别依赖这些默认行为，显式转换：`Number(x)`、`String(x)`、`Boolean(x)`、`!!x`。
+**保存，双击打开**。点按钮，标题就变了。这就是 JS 做的事。
 
-## 二、变量、作用域、闭包
-
-### 2.1 `var` / `let` / `const`
-
-- `var`：函数作用域，有 hoisting（声明提升）。**别用**。
-- `let`：块作用域，有 TDZ（暂时性死区）。
-- `const`：块作用域，且不能重新绑定（但对象内部可变）。
+## 一、变量：给值起名字
 
 ```js
-{
-  let x = 1;
-  const y = { a: 1 };
-}
-// x, y 都不可见
+const name = "CloudTone";   // 不会改变的用 const
+let count = 0;              // 可能变化的用 let
+count = count + 1;          // 可以重新赋值
+
+// const name = "别的";     // 报错：const 不能改
 ```
 
-### 2.2 Hoisting 与 TDZ
+- `const` = constant（常量），**不能再次赋值**。默认都用它。
+- `let` = 可以再次赋值。确实需要变化时才用。
+- **别用 `var`**，是老语法，有各种坑。
+
+**命名规则**：用英文字母、数字、下划线、`$`，但**不能以数字开头**。习惯用 `小驼峰` 风格：`userName`、`playCount`、`isLoading`。
+
+## 二、基本数据类型
+
+JS 里你会频繁用到这 5 种：
 
 ```js
-console.log(foo); // ReferenceError（TDZ）
-let foo = 1;
-
-console.log(bar); // undefined（var 被 hoist）
-var bar = 1;
-
-hi();             // 正常执行（函数声明整体 hoist）
-function hi() { console.log("hi"); }
+const age = 25;                 // 数字（number）
+const title = "起风了";         // 字符串（string），单双引号都行
+const isPlaying = true;         // 布尔（boolean），只有 true / false
+const nothing = null;           // "明确的空"
+let u;                          // undefined，"还没赋值"
 ```
 
-### 2.3 闭包
-
-内层函数"记住"外层变量，即使外层函数已经返回。这是 JS 模块化和状态封装的基石：
+**字符串的模板语法**（比加号拼接好用 10 倍）：
 
 ```js
-function counter() {
-  let n = 0;
-  return { inc: () => ++n, get: () => n };
-}
-const c = counter();
-c.inc(); c.get(); // 1
+const name = "小明";
+const age = 18;
+
+// 老写法
+const msg1 = "我叫" + name + "，今年" + age + "岁";
+
+// 模板字符串（用反引号 ` 而不是引号）
+const msg2 = `我叫${name}，今年${age}岁`;
 ```
 
-React 的"闭包陷阱"就是它在帮倒忙：
+反引号里 `${}` 中可以放**任何表达式**：
 
 ```js
-useEffect(() => {
-  const id = setInterval(() => setCount(count + 1), 1000);
-  return () => clearInterval(id);
-}, []);
-// 这里的 count 永远是 mount 那一刻的值（0）
+const price = 99;
+const text = `总价：${price * 1.1} 元`;
 ```
 
-解决：用函数式更新 `setCount(c => c + 1)`，或把 `count` 放进依赖。
-
-## 三、对象、类、原型
-
-### 3.1 字面量与解构
+## 三、运算符
 
 ```js
-const song = { id: 1, title: "起风了", artist: { name: "买辣椒" } };
+// 算术
+1 + 2   // 3
+10 / 3  // 3.333...
+10 % 3  // 1   取余数
+2 ** 8  // 256 幂
 
-// 解构 + 重命名 + 默认值
-const { id, title: t, artist: { name } = { name: "匿名" } } = song;
+// 比较（返回 true / false）
+1 === 1    // true  严格相等，永远用这个
+1 === "1"  // false 类型不同
+1 !== 2    // true
+3 > 2      // true
+3 >= 3     // true
+
+// 逻辑
+true && false   // false  "和"，都真才真
+true || false   // true   "或"，一个真就真
+!true           // false  "非"
+
+// 字符串拼接
+"a" + "b"       // "ab"
 ```
 
-### 3.2 Spread & Rest
+**关键规则：永远用 `===` 和 `!==`**，不要用 `==` 和 `!=`。后者会做奇怪的类型转换，比如 `0 == ""` 竟然是 true。
+
+## 四、条件判断
 
 ```js
-const a = { x: 1 };
-const b = { ...a, y: 2 };     // 浅拷贝 + 扩展
+const age = 18;
 
-function f(first, ...rest) {} // rest 参数
-f(1, 2, 3);                   // rest = [2, 3]
-```
-
-**浅拷贝** 只拷一层，嵌套对象仍共享引用。深拷贝用 `structuredClone(obj)`（现代浏览器/Node 原生）。
-
-### 3.3 类
-
-```js
-class Player {
-  #audio;              // 私有字段，# 前缀
-  static maxVolume = 100;
-  constructor(src) { this.#audio = new Audio(src); }
-  play() { this.#audio.play(); }
-  get duration() { return this.#audio.duration; }
-  set volume(v) { this.#audio.volume = v; }
+if (age >= 18) {
+  console.log("成年");
+} else if (age >= 12) {
+  console.log("青少年");
+} else {
+  console.log("儿童");
 }
 ```
 
-现代 JS 类已经够用，继承、static、getter/setter、private 一应俱全。但 React 里几乎不用 class，全是函数式。
-
-### 3.4 原型链（了解即可）
-
-`instance.__proto__ === Class.prototype`。方法查找顺序：自己 → `__proto__` → …  → `Object.prototype`。日常不用关心，读老代码时要认识 `Object.create`、`Object.getPrototypeOf`。
-
-### 3.5 `this` 的 4 种绑定
+**三元运算符**（if-else 的简写，在 React 里用得非常多）：
 
 ```js
-fn()            // 默认：严格模式 undefined，松散模式全局
-obj.fn()        // 隐式：this = obj
-fn.call(ctx)    // 显式：this = ctx
-new Fn()        // 构造：this = 新对象
+const status = age >= 18 ? "成年" : "未成年";
+// 等价于：if (age >= 18) status = "成年"; else status = "未成年";
 ```
 
-箭头函数**没有自己的 this**，继承词法作用域的 this。这是它在回调里不翻车的根本原因：
+**短路语法**（常见简写）：
 
 ```js
-button.addEventListener("click", () => {
-  this.state; // 拿到外部 this（比如 React 组件实例）
+const name = userName || "匿名";          // userName 为空就用 "匿名"
+const len = arr?.length ?? 0;             // arr 可能不存在时取 length，没有就 0
+```
+
+- `a || b`：a 是 "假值"（`false`/`0`/`""`/`null`/`undefined`）时取 b。
+- `a ?? b`：a 是 `null` 或 `undefined` 时取 b，**空字符串和 0 不算**。
+- `obj?.field`：obj 是 null/undefined 时直接返回 undefined，不报错。
+
+## 五、数组：有序列表
+
+```js
+const fruits = ["苹果", "香蕉", "橘子"];
+
+fruits[0];          // "苹果"，下标从 0 开始
+fruits.length;      // 3
+fruits.push("梨");   // 末尾追加
+fruits.pop();        // 弹出末尾
+fruits.includes("苹果");  // true
+```
+
+**最常用的三个数组方法**（React 里天天用）：
+
+```js
+const nums = [1, 2, 3, 4];
+
+// map：每个元素做一次变换，得到新数组
+const doubled = nums.map(n => n * 2);         // [2, 4, 6, 8]
+
+// filter：只保留满足条件的元素
+const evens = nums.filter(n => n % 2 === 0);  // [2, 4]
+
+// find：找第一个满足条件的
+const first = nums.find(n => n > 2);          // 3
+```
+
+`n => n * 2` 是"**箭头函数**"（下一节讲），先知道它就是个函数。
+
+**遍历数组**：
+
+```js
+for (const fruit of fruits) {
+  console.log(fruit);
+}
+
+// 或者 forEach
+fruits.forEach(fruit => console.log(fruit));
+```
+
+## 六、对象：带标签的数据
+
+对象是"**一堆键值对**"：
+
+```js
+const song = {
+  id: 1,
+  title: "起风了",
+  artist: "买辣椒也用券",
+  duration: 321,
+  isLiked: true,
+};
+
+song.title;       // "起风了"
+song.duration;    // 321
+
+song.title = "新标题";   // 修改
+song.rating = 5;          // 添加新字段
+```
+
+对象可以嵌套：
+
+```js
+const user = {
+  name: "小明",
+  address: {
+    city: "北京",
+    zip: "100000",
+  },
+};
+user.address.city;    // "北京"
+```
+
+**对象数组**（最常见的数据结构）：
+
+```js
+const songs = [
+  { id: 1, title: "歌曲 A", artist: "歌手甲" },
+  { id: 2, title: "歌曲 B", artist: "歌手乙" },
+  { id: 3, title: "歌曲 C", artist: "歌手丙" },
+];
+
+// 找 ID 为 2 的歌
+const song = songs.find(s => s.id === 2);
+
+// 列出所有标题
+const titles = songs.map(s => s.title);   // ["歌曲 A", "歌曲 B", "歌曲 C"]
+
+// 过滤出 "歌手甲" 的歌
+const filtered = songs.filter(s => s.artist === "歌手甲");
+```
+
+**这三个操作**（map、filter、find）将来你会在 React 里每天用几十次。
+
+### 6.1 解构：快速提取字段
+
+```js
+const song = { id: 1, title: "起风了", artist: "买辣椒" };
+
+// 老写法
+const id = song.id;
+const title = song.title;
+
+// 解构（推荐）
+const { id, title } = song;
+const { artist: singer } = song;   // 顺便重命名
+```
+
+数组解构：
+
+```js
+const [first, second] = [10, 20, 30];  // first=10, second=20
+```
+
+### 6.2 展开运算符 `...`
+
+```js
+const a = [1, 2, 3];
+const b = [...a, 4, 5];              // [1, 2, 3, 4, 5]
+
+const song1 = { id: 1, title: "A" };
+const song2 = { ...song1, title: "B" };  // 复制 + 覆盖 title
+// song2 = { id: 1, title: "B" }
+```
+
+展开运算符在 React 里做"**不可变更新**"必备。
+
+## 七、函数：可复用的代码块
+
+三种写法，**功能几乎一样**：
+
+```js
+// 1. 函数声明
+function add(a, b) {
+  return a + b;
+}
+
+// 2. 函数表达式
+const add2 = function(a, b) {
+  return a + b;
+};
+
+// 3. 箭头函数（推荐，最简洁）
+const add3 = (a, b) => a + b;
+
+// 如果函数体多行：
+const add4 = (a, b) => {
+  const sum = a + b;
+  return sum;
+};
+```
+
+调用方式相同：
+
+```js
+add(3, 4);    // 7
+add3(3, 4);   // 7
+```
+
+**默认参数**：
+
+```js
+function greet(name = "朋友") {
+  return `你好，${name}`;
+}
+greet();          // "你好，朋友"
+greet("小明");    // "你好，小明"
+```
+
+**函数是一等公民**：函数可以存进变量，也可以当参数传给别的函数。这就是为什么 `arr.map(n => n * 2)` 能工作——`map` 接收一个函数参数。
+
+```js
+function applyTwice(fn, x) {
+  return fn(fn(x));
+}
+applyTwice(n => n + 1, 5);   // 7，因为 (5+1)+1
+```
+
+## 八、DOM 操作：让 JS 控制 HTML
+
+**DOM** 是浏览器给 JS 的"操作界面"——每个 HTML 元素在 JS 里对应一个对象，改这个对象，页面就变。
+
+```html
+<h1 id="title">原文字</h1>
+<button id="btn">点我</button>
+<ul id="list"></ul>
+
+<script>
+  // 找元素
+  const title = document.getElementById("title");
+  const btn = document.getElementById("btn");
+  const list = document.getElementById("list");
+
+  // 改内容
+  title.textContent = "新文字";
+
+  // 改样式
+  title.style.color = "red";
+  title.style.fontSize = "30px";
+
+  // 加类
+  title.classList.add("active");
+  title.classList.remove("active");
+  title.classList.toggle("active");
+
+  // 监听点击
+  btn.addEventListener("click", () => {
+    // 动态生成一个 <li> 加进列表
+    const li = document.createElement("li");
+    li.textContent = "新的一项 " + Math.random();
+    list.appendChild(li);
+  });
+</script>
+```
+
+把上面整段存成 `index.html` 打开，每次点按钮，列表里就多一项。
+
+**这就是"原生 JS 做前端"的全貌**。但你会发现：
+- 要精确找到每个元素（`getElementById`）。
+- 每次数据变了都要手动改 DOM。
+- 数据多了代码很乱。
+
+这正是 React 要解决的问题（下一章）。
+
+### 8.1 其他常用选择方法
+
+```js
+document.querySelector("#title");        // 用 CSS 选择器找第一个
+document.querySelector(".card");         // 找第一个 class="card" 的
+document.querySelectorAll(".card");      // 找所有，返回数组样的东西
+```
+
+## 九、事件：响应用户操作
+
+```js
+btn.addEventListener("click", (e) => {
+  console.log("被点到了");
+  console.log("鼠标坐标:", e.clientX, e.clientY);
+});
+
+input.addEventListener("input", (e) => {
+  console.log("当前输入:", e.target.value);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") console.log("按了 Esc");
 });
 ```
 
-## 四、函数的各种形态
+常用事件名：`click`、`input`、`change`、`submit`、`keydown`、`mouseenter`、`mouseleave`、`focus`、`blur`。
+
+## 十、异步：处理"需要等待的事情"
+
+**问题**：从服务器拉数据、读文件、等几秒、动画……这些操作不会立刻完成。JS 是**单线程**的，不能傻等，否则页面就卡死了。
+
+**解法**：回调 → Promise → async/await。现代 JS 基本只用后两种。
+
+### 10.1 先看一个卡住的例子（反例）
 
 ```js
-function add(a, b) { return a + b; }       // 声明
-const add2 = function(a, b) { return a + b; }; // 表达式
-const add3 = (a, b) => a + b;               // 箭头
-const add4 = (a, b = 0) => a + b;           // 默认参数
-function sum(...nums) { return nums.reduce((a,b)=>a+b, 0); } // rest
-function parse(obj = {}) { const { a, b = 1 } = obj; }       // 参数解构
+console.log("A");
+for (let i = 0; i < 1000000000; i++) {} // 跑一秒多
+console.log("B");
+// 输出：A（卡一下）B
+// 这期间页面完全动不了
 ```
 
-**一等公民**：函数可以作为参数传递、作为返回值、存在变量里。整个 React 就是"把 UI 函数传给 React 调用"。
-
-### 4.1 常用数组方法（必须熟）
-
-```ts
-arr.length; arr[i]; arr.at(-1);  // at 支持负索引
-arr.push(x); arr.pop();          // 尾部
-arr.unshift(x); arr.shift();     // 头部
-arr.indexOf(x); arr.includes(x);
-arr.slice(1, 3);                 // 截取（不改原）
-arr.splice(1, 2, "new");         // 修改原数组
-arr.concat(b);                   // 合并
-arr.join("-"); "a-b-c".split("-");
-arr.map(f); arr.filter(f); arr.reduce(f, init);
-arr.find(f); arr.findIndex(f); arr.findLast(f);
-arr.some(f); arr.every(f);
-arr.flat(depth); arr.flatMap(f);
-arr.sort((a,b) => a-b);          // in-place！
-arr.toSorted((a,b) => a-b);      // 不改原的新 API
-arr.reverse(); arr.toReversed();
-arr.fill(0, 1, 3);
-Array.from({ length: 5 }, (_, i) => i); // 0..4
-```
-
-### 4.2 对象工具
-
-```ts
-Object.keys(o); Object.values(o); Object.entries(o);
-Object.fromEntries(entries);
-Object.assign({}, a, b);        // 等价 { ...a, ...b }
-Object.freeze(o);               // 浅冻结
-Object.hasOwn(o, "k");          // 替代 o.hasOwnProperty
-structuredClone(o);             // 深拷贝
-```
-
-### 4.3 Map / Set / WeakMap / WeakSet
-
-```ts
-const m = new Map<string, number>();
-m.set("a", 1); m.get("a"); m.has("a"); m.delete("a");
-for (const [k, v] of m) { }
-
-const s = new Set<number>();
-s.add(1); s.has(1); s.delete(1); s.size;
-
-// Weak 系列：key 被 GC 时自动删除，不能遍历
-const wm = new WeakMap<object, MetaData>();
-```
-
-Map 比 Object 更适合键是动态/非字符串、需要保持插入顺序和已知大小的场景。
-
-## 五、异步：Promise、async/await、事件循环
-
-### 5.1 事件循环基本
-
-JS 是单线程，但"不阻塞"是因为同步代码跑完后，**event loop** 会从 task 队列里挑任务执行。大体有两类：
-
-- **宏任务（macro task）**：`setTimeout`、I/O、消息事件、`setImmediate`（Node）。
-- **微任务（micro task）**：Promise 回调、`queueMicrotask`、`MutationObserver`。
-
-一轮宏任务执行完，**把所有微任务清空**，再渲染，再进下一轮宏任务。典型题目：
+正确的"等一下"用 `setTimeout`：
 
 ```js
-console.log(1);
-setTimeout(() => console.log(2), 0);
-Promise.resolve().then(() => console.log(3));
-console.log(4);
-// 输出：1 4 3 2
+console.log("A");
+setTimeout(() => {
+  console.log("B");
+}, 1000);                   // 1000 毫秒 = 1 秒后执行
+console.log("C");
+// 输出：A → C → (1秒后) B
 ```
 
-### 5.2 Promise
+**注意顺序**：`setTimeout` 不会阻塞，它说"1 秒后再跑我给你的函数"，JS 继续往下走，所以 C 在 B 之前。
+
+### 10.2 Promise：描述"将来会有的结果"
+
+想象你点外卖：下单那一刻外卖**还没到**，但你知道将来会到（或失败）。这就是 Promise。
 
 ```js
-const p = new Promise((resolve, reject) => {
-  setTimeout(() => resolve(42), 100);
+// 一个 3 秒后才给出结果的 Promise
+const orderFood = new Promise((resolve, reject) => {
+  setTimeout(() => {
+    const success = Math.random() > 0.2;
+    if (success) {
+      resolve("外卖到了 🍜");     // 成功：调 resolve
+    } else {
+      reject("商家取消订单");     // 失败：调 reject
+    }
+  }, 3000);
 });
-p.then(v => v + 1).then(console.log).catch(console.error).finally(() => console.log("done"));
+
+// 用法
+orderFood
+  .then(result => console.log("✓", result))
+  .catch(err => console.log("✗", err));
+
+console.log("下单完成，继续干别的");
 ```
 
-组合：
+`.then(f)` 是"成功时跑 f"，`.catch(f)` 是"失败时跑 f"。
+
+真实世界的例子：`fetch` 就是返回 Promise 的网络请求。
 
 ```js
-Promise.all([p1, p2, p3]);         // 全部成功才 resolve，有一个 reject 全部 reject
-Promise.allSettled([p1, p2, p3]);  // 等所有结算，无论成败
-Promise.race([p1, p2, p3]);        // 第一个结算的赢
-Promise.any([p1, p2, p3]);         // 第一个成功的赢，全失败才 AggregateError
+fetch("https://api.github.com/users/torvalds")
+  .then(response => response.json())
+  .then(data => console.log(data.name))
+  .catch(err => console.error(err));
 ```
 
-### 5.3 async/await
+### 10.3 async / await：让异步代码像同步一样读
+
+上面的写法链式调用多了会嵌套得很丑。`async`/`await` 是**糖衣**，让代码从上到下读：
 
 ```js
-async function load() {
+async function loadUser() {
   try {
-    const [songs, artists] = await Promise.all([fetchSongs(), fetchArtists()]);
-    return { songs, artists };
-  } catch (e) {
-    console.error(e);
-    throw e;
+    const response = await fetch("https://api.github.com/users/torvalds");
+    const data = await response.json();
+    console.log(data.name);
+  } catch (err) {
+    console.error("出错了:", err);
   }
 }
+
+loadUser();
 ```
 
-等价于 Promise 链，但可读性高得多。两个常犯错误：
+**三点必记**：
+1. 用 `async` 标记的函数**总是返回 Promise**。
+2. `await` 只能在 `async` 函数里用。
+3. `await X` 会"**暂停**这个函数"直到 X 出结果。但**不阻塞整个页面**。
 
-1. **串行化**：`const a = await f(); const b = await g();` 会串行，除非真有依赖，否则用 `Promise.all`。
-2. **遗漏错误**：`async` 函数中未捕获的 `throw` 会变成 rejected Promise，必须有 `.catch` 或上层 `await try/catch`。
-
-### 5.4 并发模式
-
-```ts
-// 限流并发（类似 Rust 的 Semaphore）
-async function mapLimit<T, R>(items: T[], limit: number, f: (t: T) => Promise<R>): Promise<R[]> {
-  const ret: R[] = [];
-  const executing = new Set<Promise<void>>();
-  for (const it of items) {
-    const p = (async () => { ret.push(await f(it)); })();
-    executing.add(p); p.finally(() => executing.delete(p));
-    if (executing.size >= limit) await Promise.race(executing);
-  }
-  await Promise.all(executing);
-  return ret;
-}
-```
-
-### 5.5 AbortController
-
-现代 API 的标准"取消"手段：
+**并发多个异步**：
 
 ```js
-const ac = new AbortController();
-fetch(url, { signal: ac.signal });
-setTimeout(() => ac.abort(), 5000); // 5 秒超时
+// ❌ 一个一个等（慢）
+const songs = await fetchSongs();
+const artists = await fetchArtists();
+
+// ✓ 同时发，一起等（快）
+const [songs, artists] = await Promise.all([fetchSongs(), fetchArtists()]);
 ```
 
-React Query、TanStack Query 都用它做自动取消。写 API 层请把 signal 透传到 fetch。
+### 10.4 一个完整的小例子
 
-## 六、错误处理
+```html
+<input id="q" placeholder="输入 GitHub 用户名" />
+<button id="go">搜</button>
+<div id="result"></div>
 
-```js
-try { risky(); } catch (e) {
-  if (e instanceof TypeError) { /* ... */ }
-  console.error(e);
-  throw new Error("failed", { cause: e }); // cause 保留原因
-} finally { cleanup(); }
+<script>
+  const q = document.getElementById("q");
+  const go = document.getElementById("go");
+  const result = document.getElementById("result");
+
+  go.addEventListener("click", async () => {
+    result.textContent = "加载中...";
+    try {
+      const res = await fetch(`https://api.github.com/users/${q.value}`);
+      if (!res.ok) throw new Error("未找到");
+      const data = await res.json();
+      result.innerHTML = `<img src="${data.avatar_url}" width="80" /><p>${data.name}</p>`;
+    } catch (e) {
+      result.textContent = "出错: " + e.message;
+    }
+  });
+</script>
 ```
 
-自定义错误：
+**动手试试 ①**：把这段存成 HTML 打开，输入 `torvalds` 点搜索看看。
+
+## 十一、模块化：代码分文件
+
+一个项目几千行代码放一个文件不现实。JS 用 `import` / `export` 拆文件：
 
 ```js
-class NetworkError extends Error {
-  constructor(msg, status) { super(msg); this.name = "NetworkError"; this.status = status; }
-}
-```
-
-**never return in finally**：在 `finally` 里 return 会吞掉 try 的返回/异常，常见事故。
-
-## 七、模块：ESM 是唯一答案
-
-```js
-// utils.ts
+// utils.js
 export const PI = 3.14;
-export function area(r) { return PI * r * r; }
-export default function hello() { return "hi"; }
-
-// main.ts
-import hello, { PI, area } from "./utils";
-import * as utils from "./utils";
-import("./lazy").then(mod => mod.run()); // 动态导入
-```
-
-CJS (`require`) 在 Tauri 前端基本不会遇到。Node 后端世界里仍可能见到，兼容手段多但都脏。
-
-## 八、TypeScript 大全
-
-### 8.1 基础类型
-
-```ts
-let s: string = "a";
-let n: number = 1;
-let b: boolean = true;
-let u: undefined = undefined;
-let nil: null = null;
-let anyVal: any;       // 逃生舱，能避则避
-let unk: unknown;      // 必须先 narrow 才能用
-let never: never;      // 不可能出现的值（用于穷尽性检查）
-let arr: number[] = [1]; let arr2: Array<number> = [1];
-let tup: [string, number] = ["a", 1];
-let fn: (a: number) => number = x => x + 1;
-```
-
-### 8.2 接口 vs 类型别名
-
-```ts
-interface Song { id: number; title: string; }
-// 扩展
-interface Song { path: string; }        // 声明合并！
-interface LikedSong extends Song { liked: true }
-
-type SongT = { id: number; title: string; };
-type SongT2 = SongT & { path: string };  // 用 & 交叉
-// 不能再次声明 SongT（无合并）
-```
-
-通常：描述对象 → `interface`；描述 union / 复杂组合 → `type`。
-
-### 8.3 联合、交叉、字面量
-
-```ts
-type Status = "idle" | "loading" | "success" | "error";
-type Id = number | string;
-
-type Full = { a: number } & { b: string }; // 交叉
-
-type Theme = "light" | "dark" | `${"zh" | "en"}-${"cn" | "us"}`; // 模板字面量
-```
-
-### 8.4 泛型
-
-```ts
-function first<T>(arr: T[]): T | undefined { return arr[0]; }
-
-// 约束
-function lengthy<T extends { length: number }>(x: T) { return x.length; }
-
-// 多参 + 默认
-type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
-
-// 类泛型
-class Store<T> { private items: T[] = []; add(x: T) { this.items.push(x); } }
-```
-
-### 8.5 类型守卫与 narrowing
-
-TypeScript 会根据控制流自动收窄：
-
-```ts
-function f(x: string | number) {
-  if (typeof x === "string") { x.toUpperCase(); }   // 已收窄为 string
-  else { x.toFixed(2); }
+export function area(r) {
+  return PI * r * r;
 }
 
-function isSong(x: unknown): x is Song {
-  return typeof x === "object" && x !== null && "title" in x;
-}
-
-// 判别联合（discriminated union）最佳实践
-type Msg = { kind: "play"; id: number } | { kind: "pause" } | { kind: "seek"; pos: number };
-function handle(m: Msg) {
-  switch (m.kind) {
-    case "play": return m.id;
-    case "pause": return;
-    case "seek": return m.pos;
-    default: { const _exhaust: never = m; return _exhaust; } // 穷尽性检查
-  }
+// 默认导出（一个文件最多一个）
+export default function hello() {
+  return "hi";
 }
 ```
 
-**穷尽性检查**是 TS 替代 Rust `match` 的最佳实践——新增 kind 忘处理时会编译失败。
+```js
+// main.js
+import hello, { PI, area } from "./utils.js";
 
-### 8.6 工具类型（必须会）
-
-```ts
-Partial<T>      // 所有字段可选
-Required<T>     // 所有字段必选
-Readonly<T>     // 所有字段只读
-Pick<T, K>      // 挑几个字段
-Omit<T, K>      // 去掉几个字段
-Record<K, V>    // 键值对象
-Exclude<T, U>   // union 里排除
-Extract<T, U>   // union 里保留
-NonNullable<T>  // 去掉 null/undefined
-Parameters<F>   // 函数参数元组
-ReturnType<F>   // 返回值类型
-Awaited<P>      // Promise<T> 里的 T
+console.log(PI);
+console.log(area(5));
+console.log(hello());
 ```
 
-### 8.7 映射与条件类型（进阶）
+在 HTML 里用模块：
 
-```ts
-// 把所有字段变可选
-type Partial<T> = { [K in keyof T]?: T[K] };
-
-// 条件类型
-type IsString<T> = T extends string ? true : false;
-type A = IsString<"hello">;  // true
-type B = IsString<123>;      // false
-
-// infer 推断
-type ElementOf<T> = T extends (infer U)[] ? U : never;
-type Item = ElementOf<number[]>; // number
-
-// 递归：把 API 响应里所有字段变只读
-type DeepReadonly<T> = { readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : T[K] };
+```html
+<script type="module" src="./main.js"></script>
 ```
 
-### 8.8 模板字面量类型
+`type="module"` 是关键。Vite / Tauri 项目里默认都是模块，不用你手动写。
 
-```ts
-type EventName<T extends string> = `on${Capitalize<T>}`;
-type Y = EventName<"click">; // "onClick"
+## 十二、TypeScript：给 JS 加类型
 
-type CssVar = `--${string}`;
+### 12.1 为什么需要它
+
+纯 JS 的这种问题特别常见：
+
+```js
+function sum(nums) {
+  return nums.reduce((a, b) => a + b, 0);
+}
+sum(5);           // 炸了！5 不是数组，但直到运行才发现
 ```
 
-### 8.9 `satisfies` 与 `as const`
+TypeScript 让你**在写代码时**就标出类型，编辑器会立即报红：
 
 ```ts
-const routes = {
-  home: "/",
-  search: "/search",
-} as const;
-type Route = typeof routes[keyof typeof routes]; // "/" | "/search"
-
-const config = { host: "localhost", port: 3000 } satisfies ServerConfig;
-// satisfies 检查是否合法，同时保留具体字面量类型
+function sum(nums: number[]): number {
+  return nums.reduce((a, b) => a + b, 0);
+}
+sum(5);           // 编辑器直接红线：参数不对
+sum([1, 2, 3]);   // ✓
 ```
 
-两者经常一起用来拿"字面量 + 类型检查"。
-
-### 8.10 assertion function
+### 12.2 基本类型写法
 
 ```ts
-function assert(cond: unknown, msg?: string): asserts cond {
-  if (!cond) throw new Error(msg);
+let name: string = "小明";
+let age: number = 18;
+let isMember: boolean = true;
+let tags: string[] = ["pop", "rock"];     // 字符串数组
+let ids: number[] = [1, 2, 3];
+
+// 可能为空
+let nickname: string | null = null;
+let optional: number | undefined;
+
+// 字面量联合（限定几个值之一）
+let status: "idle" | "loading" | "success" | "error" = "idle";
+```
+
+**联合类型 `A | B`** 意思是"要么 A 要么 B"。非常常用。
+
+### 12.3 对象类型：用 interface
+
+```ts
+interface Song {
+  id: number;
+  title: string;
+  artist: string;
+  duration: number;
+  isLiked?: boolean;        // 问号表示"可选"
 }
 
-function parseSong(x: unknown): Song {
-  assert(typeof x === "object" && x, "not object");
-  assert("title" in x, "no title");
-  return x as Song;
+const s: Song = {
+  id: 1,
+  title: "起风了",
+  artist: "买辣椒",
+  duration: 321,
+};
+```
+
+`interface` 就是"**这个对象必须长什么样**"的说明。
+
+### 12.4 函数类型
+
+```ts
+function add(a: number, b: number): number {
+  return a + b;
 }
+
+// 箭头函数
+const greet = (name: string): string => `你好 ${name}`;
+
+// 返回值可以省，让 TS 自动推断
+const mult = (a: number, b: number) => a * b;
 ```
 
-### 8.11 declare / 环境声明
-
-全局变量、第三方库缺声明时用：
+### 12.5 数组里装对象
 
 ```ts
-// env.d.ts
-declare const __APP_VERSION__: string;
-declare module "*.png" { const src: string; export default src; }
-interface ImportMetaEnv { VITE_API_URL: string; }
+const songs: Song[] = [
+  { id: 1, title: "A", artist: "甲", duration: 200 },
+  { id: 2, title: "B", artist: "乙", duration: 180 },
+];
+
+// map/filter 的类型自动推断
+const titles = songs.map(s => s.title);     // string[]
+const longOnes = songs.filter(s => s.duration > 190);
 ```
 
-Vite 项目里 `import.meta.env.VITE_API_URL` 的类型就靠它。
+### 12.6 泛型：参数化类型
 
-### 8.12 类型推断的陷阱
+如果一个工具"**对任何类型都行**"，用泛型：
 
 ```ts
-const songs = []; // any[]！
-songs.push({ id: 1 });
+function first<T>(arr: T[]): T | undefined {
+  return arr[0];
+}
 
-// 明确类型
-const songs: Song[] = [];
-// 或
-const songs = [] as Song[]; // 不推荐，用 const assertion 时可能过宽
+first([1, 2, 3]);           // number | undefined
+first(["a", "b"]);          // string | undefined
+first<Song>([/* ... */]);   // Song | undefined
 ```
 
-函数返回值尽量不显式标注，让 TS 推断；参数类型必须显式。
+`<T>` 里的 T 就像一个类型参数。调用时 TS 自动填它。
 
-### 8.13 TS 工程化
+### 12.7 `any` 和 `unknown`
 
-`tsconfig.json` 关键开关：
+```ts
+let x: any;         // 什么都能塞，什么检查都没（逃避类型检查的逃生舱，别滥用）
+let y: unknown;     // 什么都能塞，但用之前必须"收窄"到具体类型
+```
+
+**尽量别用 `any`**，它等于放弃了 TS 的保护。
+
+### 12.8 `tsconfig.json` 关键开关
+
+项目根目录的 `tsconfig.json` 控制检查严格程度：
 
 ```jsonc
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,                     // 打开所有严格检查
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noUncheckedIndexedAccess": true,   // arr[i] 类型变 T | undefined，防空读
-    "exactOptionalPropertyTypes": true, // optional 不能显式赋 undefined
-    "noFallthroughCasesInSwitch": true,
-    "isolatedModules": true,            // Vite 需要
-    "skipLibCheck": true,
-    "paths": { "@/*": ["src/*"] }
+    "strict": true,                    // 打开所有严格检查（必选）
+    "noUncheckedIndexedAccess": true,  // arr[i] 可能是 undefined，逼你处理
+    "skipLibCheck": true
   }
 }
 ```
 
-每一项都有真实价值。尤其 `noUncheckedIndexedAccess`，能把一类难以发现的 undefined 读错暴露在编译期。
+`strict: true` 这一个开关就够大部分项目用了。
 
-## 九、Rust ↔ TypeScript 对照表（加长版）
+## 十三、常见陷阱与坑
 
-| 概念 | Rust | TypeScript |
-| --- | --- | --- |
-| 绑定 | `let x = 1; let mut y = 2;` | `const x = 1; let y = 2;` |
-| 结构体 | `struct S { a: i32 }` | `interface S { a: number }` |
-| 枚举(无字段) | `enum E { A, B }` | `type E = "a" \| "b"` 或 `enum E {}`（少用） |
-| 枚举(带字段) | `enum E { A(i32), B{x: i32} }` | 判别联合 `{ kind: "a"; v: number } \| { kind: "b"; x: number }` |
-| Option | `Option<T>` | `T \| undefined` |
-| Result | `Result<T, E>` | `{ ok: true; v: T } \| { ok: false; e: E }` |
-| Trait | `trait Foo {}` | `interface Foo {}`（结构化） |
-| 泛型约束 | `<T: Trait>` | `<T extends I>` |
-| 生命周期 | `'a` | 无（GC） |
-| Send/Sync | 并发标记 | 无（单线程）/ Worker 用 structuredClone |
-| match 穷尽 | `match` 必穷尽 | switch + `never` 默认分支 |
-| `?` 传播错误 | `v?` | 手动 `try/catch` 或 `neverthrow` 库 |
-| unsafe | `unsafe {}` | `as any` / `// @ts-ignore` |
+- **`typeof null === "object"`**：JS 历史遗留 bug，判断 null 要 `x === null`。
+- **0.1 + 0.2 !== 0.3**：浮点数精度问题，金额用分为单位存整数。
+- **`arr.sort()` 默认按字符串排**：`[10, 2, 1].sort()` 结果是 `[1, 10, 2]`。数字要写 `arr.sort((a,b) => a-b)`。
+- **对象是引用**：`const a = { x: 1 }; const b = a; b.x = 2;` 此时 `a.x` 也是 2！要拷贝用 `{ ...a }`。
+- **`for...in` 遍历 key，`for...of` 遍历 value**：别搞混。
+- **箭头函数没有自己的 `this`**：在回调里想用外层 `this` 时特别好用，这也是推荐它的原因之一。
 
-## 十、实战小题
+## 十四、一个综合小项目：TODO 列表
 
-### 10.1 防抖 / 节流
+把本章学的全部用上，写一个最简 TODO。新建 `todo.html`：
 
-```ts
-export function debounce<F extends (...args: any[]) => void>(fn: F, ms: number) {
-  let t: ReturnType<typeof setTimeout> | null = null;
-  return (...args: Parameters<F>) => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-}
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; font-family: sans-serif; }
+      body { max-width: 400px; margin: 40px auto; padding: 20px; }
+      .row { display: flex; gap: 8px; margin-bottom: 16px; }
+      .row input { flex: 1; padding: 8px; }
+      .row button { padding: 8px 16px; }
+      ul { list-style: none; padding: 0; }
+      li { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid #eee; }
+      li.done span { text-decoration: line-through; color: #aaa; }
+      li button { margin-left: auto; background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <h1>我的 TODO</h1>
+    <div class="row">
+      <input id="input" placeholder="要做什么？" />
+      <button id="add">添加</button>
+    </div>
+    <ul id="list"></ul>
 
-export function throttle<F extends (...args: any[]) => void>(fn: F, ms: number) {
-  let last = 0;
-  return (...args: Parameters<F>) => {
-    const now = Date.now();
-    if (now - last >= ms) { last = now; fn(...args); }
-  };
-}
+    <script>
+      const todos = [];
+
+      const input = document.getElementById("input");
+      const addBtn = document.getElementById("add");
+      const list = document.getElementById("list");
+
+      function render() {
+        list.innerHTML = "";
+        todos.forEach((todo, idx) => {
+          const li = document.createElement("li");
+          if (todo.done) li.classList.add("done");
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = todo.done;
+          checkbox.addEventListener("change", () => {
+            todos[idx].done = checkbox.checked;
+            render();
+          });
+
+          const span = document.createElement("span");
+          span.textContent = todo.text;
+
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "删";
+          delBtn.addEventListener("click", () => {
+            todos.splice(idx, 1);
+            render();
+          });
+
+          li.appendChild(checkbox);
+          li.appendChild(span);
+          li.appendChild(delBtn);
+          list.appendChild(li);
+        });
+      }
+
+      addBtn.addEventListener("click", () => {
+        const text = input.value.trim();
+        if (!text) return;
+        todos.push({ text, done: false });
+        input.value = "";
+        render();
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") addBtn.click();
+      });
+    </script>
+  </body>
+</html>
 ```
 
-### 10.2 类型安全的事件总线
+打开这个文件，你能：输入任务回车添加、勾选打钩、点"删"删除。
 
-```ts
-type Events = {
-  "player:play": { songId: number };
-  "player:pause": void;
-  "library:updated": { count: number };
-};
-
-class Bus<E extends Record<string, any>> {
-  private m = new Map<keyof E, Set<(p: any) => void>>();
-  on<K extends keyof E>(k: K, h: (p: E[K]) => void) {
-    if (!this.m.has(k)) this.m.set(k, new Set());
-    this.m.get(k)!.add(h);
-    return () => this.m.get(k)!.delete(h);
-  }
-  emit<K extends keyof E>(k: K, ...args: E[K] extends void ? [] : [E[K]]) {
-    this.m.get(k)?.forEach(h => h(args[0]));
-  }
-}
-
-const bus = new Bus<Events>();
-bus.on("player:play", p => p.songId); // 类型精确
-bus.emit("player:pause");              // 无参数 OK
-bus.emit("player:play", { songId: 1 });
-```
-
-### 10.3 解析 URL 查询参数（类型化）
-
-```ts
-function parseQuery<T extends Record<string, string>>(url: string): Partial<T> {
-  const u = new URL(url);
-  const out: Record<string, string> = {};
-  u.searchParams.forEach((v, k) => (out[k] = v));
-  return out as Partial<T>;
-}
-```
-
-## 十一、常见陷阱清单
-
-- `JSON.parse(JSON.stringify(x))` 会丢 Date、Map、undefined、函数。用 `structuredClone`。
-- `sort` **原地**排序且默认按字符串比较，数字要写 `(a,b)=>a-b`。
-- `typeof null === "object"`（JS 历史遗留）。
-- `for...in` 遍历对象 key，`for...of` 遍历 iterable（数组、Map、Set、字符串）。
-- 数字精度：`0.1 + 0.2 !== 0.3`。货币用 cents 整数；大 ID 用 bigint 或 string（注意 Rust 的 `u64` 在 JSON 里超过 2^53 会丢精度）。
-- `Array.from({ length: n })` 拿到稀疏数组；`[...Array(n)]` 也一样；用 `Array.from({ length: n }, (_, i) => i)` 初始化。
-- `typeof undeclaredVar === "undefined"` 合法，但读未声明变量会 ReferenceError（TDZ）。
-- `this` 在 `setTimeout(fn)` 回调里会丢（除非用箭头）。
-- `async` 函数的 `return Promise.reject(x)` 和 `throw x` 一样效果。
+**这就是原生 JS 版的 TODO**。注意每次改数据都要手动 `render()`，页面才更新。React 就是来解决这个烦恼的。
 
 ## 本章小结
 
-- JavaScript 的值语义、引用语义、闭包、事件循环，是写任何前端代码的基础心智模型。
-- TypeScript 的"判别联合 + 穷尽性 + 工具类型 + 模板字面量 + infer" 这些组合起来，能描述几乎所有领域模型。
-- 严格的 tsconfig 是帮你省 bug 的朋友。
+- **变量**：`const`（不变）/ `let`（变）。
+- **类型**：number / string / boolean / null / undefined / 数组 / 对象。
+- **函数**：三种写法功能相同，推荐箭头函数。
+- **数组三件套**：`map` / `filter` / `find`。
+- **DOM 操作**：`getElementById` + `addEventListener` 改 `textContent`/`style`/`classList`。
+- **异步**：`async`/`await` + `try/catch` 处理网络请求等。
+- **模块**：`import` / `export` 拆代码。
+- **TypeScript**：给变量、参数、返回值加类型标注，编辑器帮你提前抓错。
 
-下一章，我们进入 React 的完整心智模型。
+下一章：**React**——让你不再手动拼 DOM，用"写 UI = 写函数"的方式高效做界面。

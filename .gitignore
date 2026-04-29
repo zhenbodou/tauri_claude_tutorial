@@ -30,3 +30,9 @@ tauri-master-book/book/
 .env
 .env.local
 .env.*.local
+
+# === Backups ===
+apple-media-*-backup-*/
+
+# === Claude ===
+.claude/

@@ -1,7 +1,6 @@
 [book]
 authors = ["codecow"]
 language = "zh-CN"
-multilingual = false
 src = "src"
 title = "从零到高级：Tauri 2.x 工程实战 —— 用 Rust + React 打造 CloudTone 音乐播放器"
 description = "零前端基础起步，全中文讲解，以生产级音乐播放器为贯穿项目，系统掌握 Tauri 2.x、Rust 后端工程、React/TypeScript 前端、跨平台打包与分发，直指 Tauri 高级工程师岗位。"

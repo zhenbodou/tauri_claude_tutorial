@@ -1,0 +1,23 @@
+<!--告诉浏览器“用标准模式渲染“。没它就会退回怪异模式（Quirks Mode），盒模型算法都会变。-->
+<!DOCTYPE html>
+<!--屏幕阅读器、自动断词、拼写检查都看它。SEO 也看-->
+<html lang="zh-CN">
+    <head>
+        <!--告诉浏览器文档使用什么编码，必须放在第一行，否则可能会被误解为其他编码，导致乱码。-->
+        <meta charset="UTF-8" />
+        <!--告诉浏览器页面适合在什么设备上显示，设置为宽度等于设备宽度，初始缩放比例为1.0。-->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!--theme-color：Windows 标题栏、PWA、某些 Linux 窗口管理器会读取它。-->
+        <meta name="theme-color" content="#000000" />
+        <title>Document</title>
+        <meta charset="utf-8" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="stylesheet" href="/src/styles/index.css" />
+    </head>
+    <body>
+        <!--React 挂载点。Tauri 里永远是这一个根。-->
+        <div id="root"></div>
+        <!--启用 ESM。Vite 出的代码是 ESM，这个属性是刚需-->
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
+</html>

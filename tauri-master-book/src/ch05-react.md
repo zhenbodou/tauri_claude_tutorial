@@ -1,568 +1,798 @@
-# 第 5 章 React 精通指南
+# 第 5 章 React（从零开始）
 
-> 不是"会写组件"就结束，而是"理解 React 为什么这样设计、每个 Hook 适用的边界、怎么避开常见的性能与一致性坑"。读完你能像 React 核心成员一样思考。
+> **假设你看完了第 3、4 章**，知道 HTML 结构、CSS 样式、JS 变量函数数组对象、DOM 操作和异步。这一章告诉你：为什么还需要一个 React？每一个概念都有可跑示例。读完你能独立写出 CloudTone 主界面的所有交互。
 
-## 本章目标
+## 零、为什么需要 React？
 
-- 心智模型：渲染、reconciliation、Fiber、并发。
-- 每个内置 Hook 的用途、陷阱、最佳实践。
-- 组件组合模式：受控/非受控、render props、children、compound components、Provider。
-- 性能：何时 memo、何时不该 memo；Suspense、Concurrent、useTransition、useDeferredValue。
-- 数据加载模式：TanStack Query 为什么流行，怎么融入。
-- 错误边界、Portal、Refs、forwardRef、imperative handle。
-- 自定义 Hook 的 API 设计。
+回想第 4 章末尾的 TODO 例子。每次数据变化，你都要：
+1. 清空 `<ul>`。
+2. 循环生成 `<li>`。
+3. 分别加 checkbox、文字、按钮。
+4. 给每个元素绑事件。
 
-## 一、React 的三句箴言
+数据一多，手写 DOM 操作既啰嗦又容易漏改。**React 的核心理念**：
 
-1. **UI = f(state)**。组件是"把状态映射到 UI 描述"的纯函数。
-2. **渲染是对整棵组件树的重新计算**，React 负责把结果 diff 到 DOM。
-3. **状态变化才应该重新渲染**；其它一切（引用相等、父组件重渲）都是优化手段而非正确性保障。
+> 你只负责说"**界面现在应该长什么样**"，React 自己搞定怎么改 DOM。
 
-这三句话能让你从"写代码"变成"想明白"。
+换句话说：
+- **纯 JS**：你写操作指令。"找到 ul，清空，然后循环 append li……"
+- **React**：你写一个"图纸"。"当前状态是 X，所以界面应该是这个样"。数据变了你只改数据，React 对比新旧图纸，**自动**更新 DOM。
 
-## 二、从 JSX 到 DOM
+## 一、跑起第一个 React
 
-### 2.1 JSX 是什么
+**最快方式**：用 Vite 一行命令创建项目。打开终端：
+
+```bash
+npm create vite@latest my-app -- --template react-ts
+cd my-app
+npm install
+npm run dev
+```
+
+浏览器打开控制台提示的地址（通常 `http://localhost:5173`），你会看到一个 React 欢迎页。
+
+**打开 `src/App.tsx`**，删掉里面所有内容，替换成：
+
+```tsx
+function App() {
+  return <h1>Hello React</h1>;
+}
+
+export default App;
+```
+
+保存，浏览器**自动热更新**，显示 "Hello React"。
+
+## 二、JSX：HTML 长在 JS 里
+
+上面 `return <h1>Hello React</h1>` 看起来像 HTML，但它**写在 TS 代码里**——这就是 **JSX**。本质上它被编译成 JS 对象：
 
 ```jsx
-<div className="a" onClick={handler}>hello</div>
+<div className="box">Hello</div>
+// 等价于
+React.createElement("div", { className: "box" }, "Hello")
 ```
 
-等价于：
-
-```js
-React.createElement("div", { className: "a", onClick: handler }, "hello");
-```
-
-它返回的是一个**普通 JS 对象**（React Element），描述"需要一个 div、这些属性、子元素是字符串 hello"。渲染器负责把它变成真实 DOM。
-
-**大小写规则**：首字母小写视为 HTML 标签；大写视为组件变量。`<Play />` 找变量 `Play`，`<play />` 输出 `<play>` 标签。
-
-### 2.2 渲染和提交
-
-React 有两个阶段：
-
-- **Render 阶段**：调用组件函数、计算新的 React 元素树、做 diff。在并发模式下可中断、重做。
-- **Commit 阶段**：把变化写入 DOM，跑 `useLayoutEffect`，浏览器 paint，再跑 `useEffect`。
-
-你写的组件函数会在 Render 阶段被调用，所以**必须是纯函数**：同样的 props 和 state → 同样的输出，不能有外部副作用。
-
-### 2.3 Reconciliation / Fiber
-
-同一位置前后两次渲染出的元素，React 会尝试复用 DOM 节点：
-
-- 类型相同（都是 `div`） → 复用 DOM，更新属性。
-- 类型不同 → 销毁旧的，新建。
-- 列表里 `key` 不同 → 销毁 + 新建。
-
-Fiber 是 React 内部的数据结构，把每次渲染拆成可中断的单元，为"时间切片 / Concurrent Mode"铺路。你不需要直接操作它，但理解"它有优先级、可被高优先级打断"能解释很多行为。
-
-## 三、组件、Props、Children
+### 2.1 JSX 和 HTML 的几点区别
 
 ```tsx
-interface BtnProps {
-  variant?: "primary" | "ghost";
-  disabled?: boolean;
-  children: React.ReactNode;
-  onClick?: (e: React.MouseEvent) => void;
-}
+// ❌ HTML 里的 class
+<div class="card">
 
-export function Btn({ variant = "primary", disabled, children, onClick }: BtnProps) {
-  return <button disabled={disabled} onClick={onClick} data-variant={variant}>{children}</button>;
-}
+// ✓ JSX 里要写 className（因为 class 是 JS 关键字）
+<div className="card">
+
+// ❌ HTML 里 for="id"
+<label for="name">
+
+// ✓ JSX 里 htmlFor
+<label htmlFor="name">
+
+// 自闭合标签必须有斜杠
+<img src="..." />     // ✓
+<img src="...">       // ❌ 报错
+
+// style 是对象，不是字符串
+<div style={{ color: "red", fontSize: 16 }}>
+
+// 注释要写在 {/* */} 里
+<div>{/* 这是注释 */}</div>
 ```
 
-- **props 是只读的**。别直接改 `props.x = ...`。
-- **children** 是特殊的 prop，对应标签之间的内容：`<Btn>Hello</Btn>` 里的 `"Hello"`。
-- **ReactNode** 涵盖所有合法子类型（string/number/element/array/null/undefined/boolean）。
+### 2.2 JSX 里嵌 JS 表达式：`{}`
 
-### 3.1 Children 之外的组合模式
-
-- **Slots**：多个位置接收 ReactNode，比如 `<Layout header={<Header/>} side={<Side/>}>{children}</Layout>`。
-- **Render props**：prop 是函数，组件把内部状态传回去渲染：`<Dropdown>{({isOpen}) => <div>{isOpen ? "open" : "closed"}</div>}</Dropdown>`。
-- **Compound components**：`<Tabs><Tabs.List/><Tabs.Panel/></Tabs>`，内部用 Context 共享状态。
-- **Controlled vs Uncontrolled**：输入组件的状态在外部 / 内部管理。
-
-## 四、内置 Hook 全覆盖
-
-### 4.1 `useState`
+大括号里可以写**任何 JS 表达式**：
 
 ```tsx
-const [count, setCount] = useState(0);
-setCount(1);           // 直接设置
-setCount(c => c + 1);  // 函数式更新（推荐在依赖上一个值时）
-```
-
-- 初始值只在首次渲染使用。
-- 惰性初始：`useState(() => expensiveCompute())`，只会跑一次。
-- 相同值（`Object.is`）不会触发重渲。
-- **自动批处理**：React 18 起，所有事件、Promise 回调里连续 setState 会合并一次 render。
-
-### 4.2 `useEffect`
-
-```tsx
-useEffect(() => {
-  const id = setInterval(tick, 1000);
-  return () => clearInterval(id);
-}, [deps]);
-```
-
-- **什么时候跑**：commit 之后、浏览器 paint 之后（异步）。
-- **清理函数**：下次执行前、或组件卸载时运行。
-- **依赖数组**：省略 → 每次 render 都跑；`[]` → 只在 mount 一次；`[a, b]` → a/b 任一变化时跑。
-
-**严格模式下 Effect 跑两次**：开发环境故意"mount → unmount → mount" 再跑一次，帮你发现未清理的 side effect。不是 bug。生产不会。
-
-常见模式：
-
-```tsx
-// 订阅
-useEffect(() => {
-  const unsub = bus.on("x", handler);
-  return unsub;
-}, []);
-
-// 异步请求（带取消）
-useEffect(() => {
-  const ac = new AbortController();
-  fetch(url, { signal: ac.signal }).then(setData).catch(e => {
-    if (e.name !== "AbortError") throw e;
-  });
-  return () => ac.abort();
-}, [url]);
-```
-
-**别在 effect 里做"仅初始化就该知道的事"**：计算 derived state 应该直接在渲染时算，而不是 useState + useEffect 同步。例子：
-
-```tsx
-// 错
-const [filtered, setFiltered] = useState([]);
-useEffect(() => setFiltered(songs.filter(s => s.liked)), [songs]);
-
-// 对
-const filtered = songs.filter(s => s.liked); // 或用 useMemo
-```
-
-### 4.3 `useLayoutEffect`
-
-签名和 `useEffect` 一样，区别是**同步**在 DOM 更新后、浏览器 paint 前运行。
-适用：需要读 DOM 尺寸 + 修改 DOM，避免闪烁。绝大多数业务用 useEffect 即可。
-
-### 4.4 `useMemo` / `useCallback`
-
-```tsx
-const sorted = useMemo(() => heavySort(data), [data]);
-const handler = useCallback((id: number) => doIt(id), [doIt]);
-```
-
-它们只是**引用缓存**。判等依据是依赖数组浅比较。
-
-- 不是"为了性能就必 memo"。memo 本身有开销，过度使用反而慢。
-- **真正需要 memo 的三种情况**：
-  1. 昂贵计算（几十毫秒级）。
-  2. 作为子组件 `memo` 的 props，需要引用稳定。
-  3. 放进 `useEffect` 依赖数组需要稳定的引用。
-
-### 4.5 `useRef`
-
-```tsx
-const inputRef = useRef<HTMLInputElement>(null);
-// 拿 DOM
-<input ref={inputRef} />
-inputRef.current?.focus();
-
-// 存可变但不触发渲染的值
-const countRef = useRef(0);
-countRef.current++;
-```
-
-两件事别混：改 ref 不会 re-render；ref 值不会在渲染期间被读（除了 ref.current 本身）。
-
-### 4.6 `useContext`
-
-```tsx
-const ThemeCtx = createContext<"light" | "dark">("dark");
-
-function A() {
-  const theme = useContext(ThemeCtx);
-  return <div data-theme={theme} />;
-}
-
-<ThemeCtx.Provider value="light"><A/></ThemeCtx.Provider>
-```
-
-**Context 陷阱**：任何 Consumer 在 Provider value 变化时都会重渲染。如果你把大对象塞 Context，所有用到它的组件都会频繁 re-render。解决方案：
-- 把 Provider 拆小（多个 Context）。
-- 用 Zustand / Jotai 等"选择式订阅" 库。
-
-### 4.7 `useReducer`
-
-```tsx
-type Action = { type: "inc" } | { type: "set"; value: number };
-function reducer(state: number, a: Action) {
-  switch (a.type) {
-    case "inc": return state + 1;
-    case "set": return a.value;
-  }
-}
-const [n, dispatch] = useReducer(reducer, 0);
-dispatch({ type: "inc" });
-```
-
-状态多且相关时用它。TS 搭配判别联合天然适合。
-
-### 4.8 `useTransition` / `useDeferredValue`（并发特性）
-
-```tsx
-const [pending, startTransition] = useTransition();
-function onChange(q: string) {
-  setInput(q);                                 // 紧急更新（输入框立即响应）
-  startTransition(() => setSearchResults(q));   // 非紧急（搜索结果）
-}
-
-// 或者让显示值"跟着但不同步"
-const deferredQ = useDeferredValue(q);
-```
-
-典型场景：搜索框内输入不卡，结果区落后于输入。React 会保证输入优先级高。
-
-### 4.9 `useId`
-
-```tsx
-const id = useId();
-<label htmlFor={id}>名字</label>
-<input id={id} />
-```
-
-为 SSR 和可访问性提供稳定唯一 ID。
-
-### 4.10 `useSyncExternalStore`
-
-和外部状态（如 Zustand、浏览器 location）对接：
-
-```tsx
-const value = useSyncExternalStore(subscribe, getSnapshot);
-```
-
-Zustand 内部就是用它。你平时几乎不直接用。
-
-### 4.11 `useImperativeHandle` + `forwardRef`
-
-```tsx
-interface VideoAPI { play(): void; pause(): void; }
-
-const Video = forwardRef<VideoAPI, { src: string }>(function Video({ src }, ref) {
-  const el = useRef<HTMLVideoElement>(null);
-  useImperativeHandle(ref, () => ({
-    play: () => el.current?.play(),
-    pause: () => el.current?.pause(),
-  }), []);
-  return <video ref={el} src={src} />;
-});
-
-// 父组件
-const vRef = useRef<VideoAPI>(null);
-vRef.current?.play();
-```
-
-用于暴露"命令式接口"。少用，优先考虑 props / state 驱动。
-
-## 五、事件、表单、Refs
-
-### 5.1 合成事件
-
-React 事件都是 `React.MouseEvent<HTMLButtonElement>` 这种泛型，继承自 DOM Event，但被包了一层。行为基本一致。
-
-```tsx
-<input onChange={e => setV(e.target.value)} onKeyDown={e => {
-  if (e.key === "Enter") submit();
-}} />
-```
-
-### 5.2 受控 vs 非受控
-
-**受控**：值存 state：
-
-```tsx
-const [v, setV] = useState("");
-<input value={v} onChange={e => setV(e.target.value)} />
-```
-
-**非受控**：DOM 自己管值，读的时候拿 ref：
-
-```tsx
-const ref = useRef<HTMLInputElement>(null);
-<input defaultValue="" ref={ref} />
-<button onClick={() => console.log(ref.current?.value)}>提交</button>
-```
-
-大多数表单用受控；超大表单或只读一次时用非受控更快。
-
-### 5.3 防止默认行为 & 阻止冒泡
-
-```tsx
-<form onSubmit={e => { e.preventDefault(); submit(); }}>
-  <a href="x" onClick={e => e.stopPropagation()}>click</a>
-</form>
-```
-
-## 六、性能：避免不必要的重渲染
-
-### 6.1 触发重渲染的情形
-
-- 组件自己 setState。
-- 父组件重渲（不管 props 是否变化）。
-- Context 的 value 变化，订阅该 Context 的消费者全部重渲。
-- 传入 key 变化 → 卸载 + 重挂。
-
-### 6.2 `React.memo`
-
-```tsx
-const Row = React.memo(function Row({ song, onPlay }: Props) {
-  return <div>...</div>;
-});
-```
-
-仅在 props 浅比较变化时重渲。依赖的前提是 props 本身引用稳定（用 `useCallback`、`useMemo`，或提到父组件外）。
-
-### 6.3 "为啥 memo 没用"
-
-常见原因：
-- props 里传了内联对象/函数：`<Row onPlay={() => play(id)} />`。每次父渲染都是新引用。
-- children 里是 JSX：每次都是新元素。拆到 memo 化的位置。
-- Context 影响到了它。
-
-工具：React DevTools 的 Profiler，能按渲染次数和时间分析。
-
-### 6.4 列表性能
-
-- 虚拟化（TanStack Virtual、react-window）。
-- 行组件用 `memo`。
-- 行 props 扁平化、稳定。
-- 避免在 render 中生成大数组/复杂计算。
-
-### 6.5 Concurrent 辅助
-
-- `useTransition`：低优先级更新。
-- `useDeferredValue`：让昂贵派生值滞后。
-- `Suspense`：暂停子树渲染等异步。
-
-## 七、Suspense 与数据加载
-
-```tsx
-<Suspense fallback={<Spinner/>}>
-  <SongList />
-</Suspense>
-```
-
-Suspense 要和"抛 Promise 直到数据就绪"的数据源配合。目前 TanStack Query (`useSuspenseQuery`) 是最现实的选择。React 官方正在推 React Server Components，但 Tauri 桌面场景不用。
-
-日常在 CloudTone 里我们不滥用 Suspense，组件内处理 loading/error 状态更透明。
-
-## 八、错误边界（Error Boundary）
-
-```tsx
-class ErrorBoundary extends React.Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError(_: unknown) { return { hasError: true }; }
-  componentDidCatch(err: unknown, info: unknown) { console.error(err, info); }
-  render() { return this.state.hasError ? this.props.fallback : this.props.children; }
+function App() {
+  const name = "小明";
+  const age = 18;
+  const items = ["苹果", "香蕉", "橘子"];
+
+  return (
+    <div>
+      <h1>你好 {name}</h1>
+      <p>今年 {age} 岁，{age >= 18 ? "成年" : "未成年"}</p>
+      <p>1 + 1 = {1 + 1}</p>
+      <ul>
+        {items.map(item => <li key={item}>{item}</li>)}
+      </ul>
+    </div>
+  );
 }
 ```
 
-必须是 class 组件（官方暂未提供 hook 版本）。包在路由层或 feature 边界。错误不会被组件 return 类型系统捕捉到——runtime 错误、渲染函数 throw 都会命中。
-
-## 九、Portal 与 Ref Forwarding
+**三点关键**：
+1. `{name}` 把变量插进 HTML 里。
+2. `{items.map(...)}` 循环生成一堆元素。列表里**每个元素都要有唯一的 `key` 属性**，React 用它追踪哪个是哪个。
+3. 多个顶层元素要用一个父元素包起来（或者用 `<>...</>`，叫 **Fragment**）：
 
 ```tsx
-ReactDOM.createPortal(<Toast/>, document.body);
+return (
+  <>
+    <h1>标题</h1>
+    <p>段落</p>
+  </>
+);
 ```
 
-Dialog、Tooltip、Toast 经常需要渲染到 DOM 根以避免 overflow/stacking 问题。配合 `forwardRef` 做触发器是常见模式。
+## 三、组件：UI 的积木
 
-## 十、自定义 Hook 的设计
-
-### 10.1 何时提取
-
-- 两个及以上组件需要同一段"跨组件生命周期 + 状态"的代码。
-- 复杂 effect 难以理解，抽出后命名清晰。
-
-### 10.2 API 设计
-
-- **名字以 `use` 开头**，React 才能识别它。
-- 返回 **单一值 / 元组 / 对象**，按含义选：
-  - 单值：`const count = useCount()`。
-  - 元组（两个相关强）：`const [state, setState] = useBool(false)`。
-  - 对象（字段多）：`const { data, isLoading, error } = useSongs()`。
-- 参数像函数一样传，允许"选项对象"扩展。
-
-### 10.3 例子：`useDebouncedValue`
+**组件 = 一个返回 JSX 的函数**。组件名必须**大写开头**。
 
 ```tsx
-export function useDebouncedValue<T>(value: T, ms = 200) {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return v;
+function Greeting() {
+  return <h1>你好，世界</h1>;
+}
+
+function App() {
+  return (
+    <div>
+      <Greeting />
+      <Greeting />
+      <Greeting />
+    </div>
+  );
 }
 ```
 
-### 10.4 例子：`usePrev`
+用大写的 `<Greeting />`，React 会去找 `Greeting` 函数；小写的 `<greeting />` 会被当成 HTML 标签。
+
+### 3.1 props：给组件传参数
 
 ```tsx
-export function usePrev<T>(value: T): T | undefined {
-  const ref = useRef<T>();
-  useEffect(() => { ref.current = value; });
-  return ref.current;
+interface GreetingProps {
+  name: string;
+  age?: number;           // 可选
+}
+
+function Greeting({ name, age }: GreetingProps) {
+  return <p>你好 {name}，{age ? `今年 ${age} 岁` : "请问贵庚？"}</p>;
+}
+
+function App() {
+  return (
+    <div>
+      <Greeting name="小明" age={18} />
+      <Greeting name="张三" />
+    </div>
+  );
 }
 ```
 
-### 10.5 例子：`useEvent`（最新函数引用）
+**关键点**：
+- 参数像 HTML 属性一样传：`name="小明" age={18}`。
+- 字符串用双引号，其他值（数字、变量、对象）用 `{}`。
+- 组件函数用**对象解构**接收：`function X({ name, age })`。
+- 用 `interface XxxProps` 定义参数类型，编辑器帮你检查。
 
-避免 Effect 依赖函数但又不想每次都变的骚操作：
+### 3.2 children：把 JSX 当参数传
 
 ```tsx
-export function useEvent<F extends (...a: any[]) => any>(fn: F): F {
-  const ref = useRef(fn);
-  useEffect(() => { ref.current = fn; });
-  return useRef(((...args: any[]) => ref.current(...args)) as F).current;
+interface CardProps {
+  title: string;
+  children: React.ReactNode;    // 内容可以是任意 JSX
+}
+
+function Card({ title, children }: CardProps) {
+  return (
+    <div style={{ border: "1px solid #ddd", padding: 16, borderRadius: 8 }}>
+      <h3>{title}</h3>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Card title="我的卡片">
+      <p>这是卡片里的内容</p>
+      <button>按钮</button>
+    </Card>
+  );
 }
 ```
 
-React 官方有 RFC `useEvent`，目前还没正式放出。这个 polyfill 在业界很普遍。
+`<Card>...</Card>` 之间的内容，在 `Card` 里通过 `children` 拿到。**组件组合的核心**。
 
-## 十一、Context 的实战模式
+## 四、State：组件的记忆
 
-### 11.1 Provider 拆分
-
-```tsx
-<AuthProvider>
-  <ThemeProvider>
-    <I18nProvider>
-      <App />
-    </I18nProvider>
-  </ThemeProvider>
-</AuthProvider>
-```
-
-每个 Provider 只放自己关心的 state，避免无关更新互相触发。
-
-### 11.2 Value 稳定化
+组件函数每次调用都会**从头执行一遍**——局部变量每次都是新的。那怎么记住"点了几次按钮"这种状态？用 **`useState`**：
 
 ```tsx
-const value = useMemo(() => ({ user, login, logout }), [user, login, logout]);
-<Ctx.Provider value={value}>...</Ctx.Provider>
-```
+import { useState } from "react";
 
-如果 value 是内联对象，每次 Provider 重渲染都产生新引用。
+function Counter() {
+  const [count, setCount] = useState(0);   // 初始值 0
 
-### 11.3 组合成自定义 Hook
-
-```tsx
-const Ctx = createContext<Auth | null>(null);
-export function useAuth() {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("useAuth must be inside AuthProvider");
-  return v;
+  return (
+    <div>
+      <p>当前计数: {count}</p>
+      <button onClick={() => setCount(count + 1)}>+1</button>
+      <button onClick={() => setCount(0)}>重置</button>
+    </div>
+  );
 }
 ```
 
-## 十二、Zustand vs Context vs Redux（为什么 CloudTone 选 Zustand）
-
-- **Context**：简单、React 原生。但 value 变了全量重渲。
-- **Zustand**：极小、"选择器订阅"，只在你关心的片段变化时重渲；API 极其简单：
+**解剖 `useState`**：
 
 ```ts
-import { create } from "zustand";
-interface State { count: number; inc: () => void }
-export const useCount = create<State>(set => ({
-  count: 0,
-  inc: () => set(s => ({ count: s.count + 1 })),
-}));
-
-// 组件里
-const count = useCount(s => s.count);   // 只订阅 count
-const inc = useCount(s => s.inc);        // action
+const [count, setCount] = useState(0);
+//      ↑        ↑              ↑
+//      当前值   更新函数        初始值
 ```
 
-- **Redux**：大厂历史选择，生态完善但样板多。现代项目逐渐转向 Zustand / Jotai。
+- `useState` 返回一个**数组**，习惯上用解构拿出来。
+- `count` 是当前值，**只能读，不能直接改**（`count++` 无效）。
+- `setCount(新值)` 更新状态，React 会**重新调用整个组件函数**，用新值再画一次。
 
-## 十三、Refs 与 DOM 操作指南
+### 4.1 重要规则
 
-- 只有在 React 声明不了的事情上才碰 DOM：测量尺寸、调用播放/全屏 API、聚焦、与第三方库集成。
-- 不要在 render 期间读 ref.current（渲染时 DOM 可能还没更新）。
-- 第三方库挂载：在 `useEffect` 里初始化，返回清理。
+**① 不要直接改 state**，要用 setter：
+
+```tsx
+// ❌ 无效
+count = count + 1;
+arr.push(x);
+obj.x = 2;
+
+// ✓ 用 setter
+setCount(count + 1);
+setArr([...arr, x]);           // 创建新数组
+setObj({ ...obj, x: 2 });      // 创建新对象
+```
+
+React 靠"**引用变了没**"判断是否需要重画。改内部没用，必须整个换。
+
+**② 依赖上一次的值时，用函数式写法**：
+
+```tsx
+// ❌ 连点两次只加了 1
+<button onClick={() => { setCount(count + 1); setCount(count + 1); }}>
+
+// ✓ 函数式，基于最新值
+<button onClick={() => { setCount(c => c + 1); setCount(c => c + 1); }}>
+```
+
+### 4.2 多个 state
+
+```tsx
+function Form() {
+  const [name, setName] = useState("");
+  const [age, setAge] = useState(0);
+  const [agree, setAgree] = useState(false);
+
+  return (
+    <div>
+      <input value={name} onChange={e => setName(e.target.value)} placeholder="姓名" />
+      <input type="number" value={age} onChange={e => setAge(Number(e.target.value))} />
+      <label>
+        <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} />
+        同意协议
+      </label>
+      <p>{agree ? `${name}, ${age} 岁` : "未同意"}</p>
+    </div>
+  );
+}
+```
+
+每个独立状态一个 `useState`。
+
+**动手试试 ①**：把这段代码放到 `App.tsx` 看看效果。试试输入时 `<p>` 实时更新。
+
+## 五、事件处理
+
+React 的事件名是**驼峰式**（`onClick`、`onChange`、`onSubmit`），值是函数：
+
+```tsx
+<button onClick={() => alert("点了！")}>点我</button>
+
+<button onClick={handleClick}>点我</button>
+// 其中
+function handleClick() {
+  alert("点了！");
+}
+
+<input onChange={e => setText(e.target.value)} />
+<form onSubmit={e => { e.preventDefault(); submit(); }}>
+```
+
+`e.preventDefault()` 阻止默认行为（比如表单提交后刷新页面）。
+
+### 5.1 传参给事件处理函数
+
+```tsx
+function List() {
+  const items = ["a", "b", "c"];
+
+  function handleDelete(item: string) {
+    console.log("删", item);
+  }
+
+  return (
+    <ul>
+      {items.map(item => (
+        <li key={item}>
+          {item}
+          <button onClick={() => handleDelete(item)}>删</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+注意是 `onClick={() => handleDelete(item)}`（传一个函数），而**不是** `onClick={handleDelete(item)}`（这会立即调用）。
+
+## 六、条件渲染 & 列表渲染（最常用两招）
+
+### 6.1 条件渲染
+
+```tsx
+function App() {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  return (
+    <div>
+      {loggedIn ? <p>欢迎回来</p> : <button onClick={() => setLoggedIn(true)}>登录</button>}
+
+      {/* 只在为 true 时显示（没 else） */}
+      {loggedIn && <p>你已登录</p>}
+    </div>
+  );
+}
+```
+
+三元 `A ? B : C` 处理两个分支；`&&` 处理"要么显示要么不显示"。
+
+### 6.2 列表渲染
+
+```tsx
+const songs = [
+  { id: 1, title: "起风了", artist: "买辣椒" },
+  { id: 2, title: "晴天", artist: "周杰伦" },
+];
+
+return (
+  <ul>
+    {songs.map(song => (
+      <li key={song.id}>
+        {song.title} - {song.artist}
+      </li>
+    ))}
+  </ul>
+);
+```
+
+**`key` 必须唯一且稳定**。通常用数据里的 id。**别用数组下标** `index` 当 key——列表顺序变动时 React 会认错。
+
+## 七、完整示例：React 版 TODO
+
+对比第 4 章的原生 JS 版本，代码更短、更清晰：
+
+```tsx
+import { useState } from "react";
+
+interface Todo {
+  id: number;
+  text: string;
+  done: boolean;
+}
+
+function App() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [input, setInput] = useState("");
+
+  function addTodo() {
+    const text = input.trim();
+    if (!text) return;
+    setTodos([...todos, { id: Date.now(), text, done: false }]);
+    setInput("");
+  }
+
+  function toggle(id: number) {
+    setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  }
+
+  function remove(id: number) {
+    setTodos(todos.filter(t => t.id !== id));
+  }
+
+  return (
+    <div style={{ maxWidth: 400, margin: "40px auto", fontFamily: "sans-serif" }}>
+      <h1>我的 TODO</h1>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <input
+          style={{ flex: 1, padding: 8 }}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && addTodo()}
+          placeholder="要做什么？"
+        />
+        <button onClick={addTodo}>添加</button>
+      </div>
+      <ul style={{ listStyle: "none", padding: 0 }}>
+        {todos.map(todo => (
+          <li key={todo.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid #eee" }}>
+            <input type="checkbox" checked={todo.done} onChange={() => toggle(todo.id)} />
+            <span style={{ flex: 1, textDecoration: todo.done ? "line-through" : "none", color: todo.done ? "#aaa" : "#000" }}>
+              {todo.text}
+            </span>
+            <button onClick={() => remove(todo.id)} style={{ background: "#ef4444", color: "white", border: "none", padding: "4px 8px", borderRadius: 4 }}>
+              删
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
+```
+
+**对比原生 JS 版，注意**：
+- 没有 `getElementById`，没有 `createElement`。
+- 没有手动调 `render()`。
+- 只改数据（`setTodos`），界面自动同步。
+
+**动手试试 ②**：在你的 Vite 项目里替换 `App.tsx` 为这段，验证能跑。然后尝试自己加一个"**清空已完成**"按钮。
+
+## 八、拆分组件：一个 TODO 拆成三块
+
+代码长了要拆。原则：**一个组件只关心一件事**。
+
+```tsx
+// TodoItem.tsx
+interface TodoItemProps {
+  todo: Todo;
+  onToggle: (id: number) => void;
+  onRemove: (id: number) => void;
+}
+
+function TodoItem({ todo, onToggle, onRemove }: TodoItemProps) {
+  return (
+    <li>
+      <input type="checkbox" checked={todo.done} onChange={() => onToggle(todo.id)} />
+      <span>{todo.text}</span>
+      <button onClick={() => onRemove(todo.id)}>删</button>
+    </li>
+  );
+}
+
+// TodoList.tsx
+function TodoList({ todos, onToggle, onRemove }: { todos: Todo[]; onToggle: (id: number) => void; onRemove: (id: number) => void }) {
+  return (
+    <ul>
+      {todos.map(todo => (
+        <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onRemove={onRemove} />
+      ))}
+    </ul>
+  );
+}
+
+// App.tsx
+function App() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  // ... 之前的 add/toggle/remove
+
+  return (
+    <div>
+      {/* 输入框部分 */}
+      <TodoList todos={todos} onToggle={toggle} onRemove={remove} />
+    </div>
+  );
+}
+```
+
+**数据流规律**：
+- **数据向下传**（通过 props）。父组件有 todos，传给 TodoList，再传给 TodoItem。
+- **事件向上传**（通过回调）。子组件里点了删，调父传下来的 `onRemove(id)`，父来更新数据。
+
+这就是 React 的"**单向数据流**"。
+
+## 九、useEffect：处理副作用
+
+**副作用** = 组件渲染之外的事：网络请求、订阅事件、定时器、读写 localStorage。
+
+```tsx
+import { useEffect, useState } from "react";
+
+function GitHubUser() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("https://api.github.com/users/torvalds")
+      .then(r => r.json())
+      .then(d => {
+        setData(d);
+        setLoading(false);
+      });
+  }, []);       // ← 依赖数组：空就是"只在组件挂载时跑一次"
+
+  if (loading) return <p>加载中...</p>;
+  return <p>{data.name} · {data.followers} 粉丝</p>;
+}
+```
+
+**`useEffect(fn, deps)` 三种写法**：
+
+```tsx
+// 每次渲染都跑（少用）
+useEffect(() => { console.log("每次"); });
+
+// 只在挂载时跑一次
+useEffect(() => { console.log("一次"); }, []);
+
+// 依赖变化时跑
+useEffect(() => { console.log("id 变了:", id); }, [id]);
+```
+
+### 9.1 清理函数
+
+订阅、定时器要清理，避免内存泄漏。`return` 一个函数就是清理：
 
 ```tsx
 useEffect(() => {
-  const chart = new Chart(ref.current!, config);
-  return () => chart.destroy();
+  const timer = setInterval(() => {
+    console.log("tick");
+  }, 1000);
+
+  return () => clearInterval(timer);   // 组件卸载或依赖变化前先清掉
 }, []);
 ```
 
-## 十四、TypeScript 与 React
+### 9.2 依赖传参
 
 ```tsx
-import { FC, PropsWithChildren, ReactNode } from "react";
+function UserInfo({ userId }: { userId: string }) {
+  const [data, setData] = useState(null);
 
-// 推荐：显式 interface，不用 FC（FC 使用体验争议）
-interface CardProps extends PropsWithChildren {
-  title: string;
-}
-export function Card({ title, children }: CardProps) { /* ... */ }
+  useEffect(() => {
+    fetch(`/api/user/${userId}`).then(r => r.json()).then(setData);
+  }, [userId]);     // userId 变时重新请求
 
-// 事件类型
-function onChange(e: React.ChangeEvent<HTMLInputElement>) {}
-function onClick(e: React.MouseEvent<HTMLButtonElement>) {}
-
-// ref
-const ref = useRef<HTMLDivElement>(null);
-
-// forwardRef 的泛型
-const Input = forwardRef<HTMLInputElement, InputProps>(function Input(props, ref) { ... });
-
-// 泛型组件
-function Select<T>({ items, onChange }: { items: T[]; onChange: (t: T) => void }) {
-  return <select>{items.map(i => <option key={String(i)}>{String(i)}</option>)}</select>;
+  return <div>{data?.name}</div>;
 }
 ```
 
-## 十五、测试心智
+### 9.3 严格模式下 Effect 跑两次是正常的
 
-- 测行为，不测实现：用 `@testing-library/react` 按"用户看到/做到什么"查询，别查内部 state。
-- `fireEvent` 够用，但 `userEvent` 更真实（模拟键盘输入、tab、焦点）。
-- mock IPC/网络，不 mock React 自身。
-- 写错误边界测试：故意让子组件 throw，断言 fallback 出现。
+开发环境下 React 故意把 effect 跑两次（mount → unmount → mount 再跑），逼你检查有没有忘清理。**不是 bug**，生产环境不会这样。
 
-（详细在第 45 章）
+### 9.4 别滥用 useEffect
 
-## 十六、常见坑清单
+很多人把"派生数据"错塞进 effect：
 
-- "state 改了组件没重渲"：多半是你 mutate 了对象。React 判相等靠 `Object.is`。
-- "effect 跑两次"：严格模式特性，非 bug。要设计成可重复执行。
-- "子组件拿到的 props 是旧值"：闭包陷阱，用函数式 setState 或 `useEvent`。
-- "列表渲染错乱"：key 没写、或 key 是 index。用稳定 id。
-- "Context 导致全量重渲"：拆 Provider 或换 Zustand。
-- "memo 不起作用"：props 里有新对象/函数引用。
-- "父组件每次重渲我就重渲"：正常，不用紧张；真慢再优化。
-- "input 输入光标跳到末尾"：你用了 key={value} 或重新 mount。
+```tsx
+// ❌ 不需要 effect
+const [filtered, setFiltered] = useState([]);
+useEffect(() => {
+  setFiltered(songs.filter(s => s.isLiked));
+}, [songs]);
 
-## 十七、从"能用"到"精通"的清单
+// ✓ 渲染时直接算
+const filtered = songs.filter(s => s.isLiked);
+```
 
-- 能说清 Render / Commit / Effect 的时序。
-- 知道 useMemo/useCallback 的实际收益和代价。
-- 能判断一段代码应该是 state / ref / 常量。
-- 熟练写自定义 Hook。
-- 熟练写 Compound Components（Tabs、Accordion）。
-- 熟练用 Zustand / TanStack Query。
-- 会在 Error Boundary 里做有意义的降级。
-- 能用 React DevTools Profiler 定位慢组件。
-- 能用 Suspense / useTransition / useDeferredValue 改善交互感受。
+渲染时就能算出的东西，**不要**用 state + effect。
+
+## 十、表单与受控组件
+
+上面例子里 `<input value={name} onChange={e => setName(e.target.value)} />` 就是"**受控组件**"——值由 React 管。几乎所有表单都这么写。
+
+**完整例子**：
+
+```tsx
+function SignupForm() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [agree, setAgree] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!agree) { alert("请同意协议"); return; }
+    console.log({ name, email });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label>
+        姓名
+        <input value={name} onChange={e => setName(e.target.value)} required />
+      </label>
+      <label>
+        邮箱
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+      </label>
+      <label>
+        <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} />
+        同意协议
+      </label>
+      <button type="submit">提交</button>
+    </form>
+  );
+}
+```
+
+## 十一、useRef：拿 DOM 或存可变值
+
+### 11.1 拿 DOM 元素
+
+```tsx
+function AutoFocus() {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();    // 页面加载就聚焦
+  }, []);
+
+  return <input ref={inputRef} />;
+}
+```
+
+### 11.2 存可变但不需要触发重渲染的值
+
+```tsx
+function Timer() {
+  const countRef = useRef(0);
+
+  function inc() {
+    countRef.current++;           // 改 ref 不会触发重渲
+    console.log(countRef.current);
+  }
+
+  return <button onClick={inc}>点我（看控制台）</button>;
+}
+```
+
+**区别 state 和 ref**：
+- 要**显示**在界面上的用 `useState`。
+- 只是**存**一下、不影响界面的用 `useRef`。
+
+## 十二、useContext：跨层传数据
+
+props 一层层传烦人时，用 Context。最典型是**主题**：
+
+```tsx
+import { createContext, useContext, useState } from "react";
+
+const ThemeContext = createContext<"light" | "dark">("light");
+
+function App() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  return (
+    <ThemeContext.Provider value={theme}>
+      <button onClick={() => setTheme(t => t === "light" ? "dark" : "light")}>切换</button>
+      <Page />
+    </ThemeContext.Provider>
+  );
+}
+
+function Page() {
+  return <Article />;
+}
+
+function Article() {
+  const theme = useContext(ThemeContext);     // 不用层层传
+  return <div style={{ background: theme === "dark" ? "#222" : "#fff" }}>...</div>;
+}
+```
+
+## 十三、自定义 Hook：封装复用逻辑
+
+**Hook** 就是用到 `useState`、`useEffect` 等的函数。你可以写自己的，**函数名必须 `use` 开头**。
+
+例子：封装"防抖"（用户停止输入 300ms 后才生效）：
+
+```tsx
+function useDebounce<T>(value: T, ms = 300): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+
+  return debounced;
+}
+
+// 使用
+function Search() {
+  const [q, setQ] = useState("");
+  const debouncedQ = useDebounce(q, 300);
+
+  useEffect(() => {
+    if (debouncedQ) console.log("发请求:", debouncedQ);
+  }, [debouncedQ]);
+
+  return <input value={q} onChange={e => setQ(e.target.value)} />;
+}
+```
+
+用户狂敲键盘，`q` 实时变，但 `debouncedQ` 只在停下 300ms 后才更新，网络请求频率骤减。
+
+## 十四、性能（先会用，再优化）
+
+**先说最重要的话**：**绝大多数场景你不需要优化**。先把功能写对，卡了再说。
+
+三个常见优化手段，**看得懂就够了**：
+
+### 14.1 `useMemo`：缓存昂贵计算
+
+```tsx
+const sortedSongs = useMemo(() => {
+  return songs.slice().sort((a, b) => b.plays - a.plays);
+}, [songs]);
+```
+
+只有 `songs` 变了才重新排。songs 没变就用上次缓存的结果。
+
+### 14.2 `useCallback`：缓存函数引用
+
+```tsx
+const handleClick = useCallback(() => {
+  doSomething(id);
+}, [id]);
+```
+
+让传给子组件的函数引用稳定，避免子组件无谓重渲。
+
+### 14.3 `React.memo`：缓存组件
+
+```tsx
+const Row = React.memo(function Row({ song }: { song: Song }) {
+  return <div>{song.title}</div>;
+});
+```
+
+`Row` 的 props 没变就不重画。
+
+**这三个联用才有效**，而且有**分析成本 > 收益**的情况，别提前用。React DevTools 的 Profiler 面板能告诉你哪个组件真慢。
+
+## 十五、React 的 10 个常见坑
+
+1. **state 更新了但组件没变** → 你改了对象内部而不是换了引用。用 `setX({ ...x, y: 2 })`。
+2. **effect 跑两次** → 严格模式特性，不是 bug。
+3. **依赖数组警告你漏了** → 照 ESLint 提示加，或想清楚为啥不需要（通常还是加上对）。
+4. **闭包陷阱**：`useEffect` 里读的 state 永远是挂载时那个值 → 用函数式更新 `setCount(c => c + 1)` 或把值加进依赖。
+5. **列表用 index 当 key** → 列表重排或删除时出 bug，用稳定 id。
+6. **input 光标乱跳** → 检查是不是 key 写错导致重新挂载。
+7. **Context 变一次所有用它的都重渲** → 把大对象拆小 Context，或用 Zustand。
+8. **className 拼错** → React 不检查 class 名，CSS 找不到的类静默不生效。
+9. **忘了 `e.preventDefault()`** → 表单提交刷新页面。
+10. **组件函数里写副作用（直接 fetch）** → 必须放 `useEffect` 里。
+
+## 十六、从这里到精通的路
+
+已经会的：
+- 写组件 / 传 props / 组件组合。
+- useState / useEffect / useRef / useContext。
+- 自定义 Hook、表单、列表。
+
+下一步（本书后续章节）：
+- **Tailwind CSS**（第 6 章）：更快地写样式。
+- **Zustand**（第 25 章）：比 Context 更好用的全局状态。
+- **TanStack Query**（第 25 章）：数据请求的工业级方案。
+- **React Router**（第 24 章）：多页面切换。
 
 ## 本章小结
 
-React 的强大在于"简单的规则 + 强大的组合性"。理解规则（纯函数渲染 + 单向数据流 + 钩子生命周期）后，组合就是你的日常工作。剩下的 90% 难题都是"性能 + 数据流 + 组件设计" 的权衡。
+- **组件 = 返回 JSX 的函数**，大写开头。
+- **props 向下传，事件向上传**。
+- **state 不能直接改**，要用 setter。
+- **JSX 里 `{}` 里写 JS 表达式**，列表要加 `key`。
+- **副作用放 `useEffect`**，清理用返回的函数。
+- **先把功能写对，别过早优化**。
 
-下一章，Tailwind 工程化进阶。
+**强烈建议**：
+1. 把第七节 TODO 例子亲手敲一遍。
+2. 再加一个功能："**只看未完成**" 的过滤开关。
+3. 再把 TODO 按第八节那样拆成 3 个组件。
+
+做完这三件事，你对 React 就不是"看过"，而是"会用"了。
+
+下一章，用 **Tailwind CSS** 把 CSS 写作效率翻几倍。

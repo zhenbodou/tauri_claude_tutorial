@@ -1,17 +1,114 @@
-# 第 3 章 前端基石：HTML 与 CSS 深度指南
+# 第 3 章 前端基石：HTML 与 CSS（从零开始）
 
-> 原来的速通版本被这章全面取代。读完你应该能做到：看到任何 Web 截图，脑子里立刻能还原它的结构树和关键 CSS；遇到奇怪的对齐、溢出、层叠 bug，能在 1 分钟内定位。
+> **本章假设你一点前端基础都没有**。我们从"网页到底是什么"开始，一步一步走到能独立写出 CloudTone 的主界面。每一节都有可以直接复制跑起来的小例子，鼓励你边看边试。
 
-## 本章目标
+## 零、先把地基打平：网页到底是什么？
 
-- 把 HTML 从"标签列表"升级为"语义 + 可访问性 + DOM 树"的综合视角。
-- 把 CSS 从"调一调属性"升级为"盒模型 + 布局系统 + 层叠机制 + 现代特性"的全景理解。
-- 掌握 Flex、Grid、Position、Transform、动画、响应式、暗色主题、变量、容器查询这些真实项目必备的知识。
-- 能独立完成 CloudTone 所有静态页面的实现与调试。
+先回答几个常常被跳过的问题。
 
-## 一、HTML 不只是标签
+**问题 1：你在浏览器里看到的"网页"是什么？**
+本质上是**三个文件**的配合：
 
-### 1.1 文档的骨架
+- `HTML` 文件 → 决定页面上**有什么东西**（标题、按钮、图片、输入框……）。像盖房子时先立的**骨架**。
+- `CSS` 文件 → 决定这些东西**长什么样**（颜色、大小、位置、字体）。像给骨架**刷漆、贴瓷砖**。
+- `JavaScript` 文件 → 决定这些东西**会做什么**（点按钮弹窗、拖滑块变音量）。像给房子装**电器和开关**（下一章讲）。
+
+**问题 2：Tauri 和这些有什么关系？**
+Tauri 把一个真正的浏览器引擎（WebView）塞进一个桌面窗口里。你写的 HTML + CSS + JS 就在这个窗口里运行，看起来像一个原生桌面软件。所以**学前端 = 学怎么做 Tauri 应用的界面**。
+
+**问题 3：我需要装什么才能开始？**
+什么都不用。你已经有浏览器了——Chrome、Edge、Safari 都行。接下来的例子，你只需要：
+
+1. 新建一个文件夹，比如 `Desktop/hello-web/`。
+2. 里面新建一个文件叫 `index.html`。
+3. 把本章每个示例的 HTML 代码粘进去。
+4. 双击 `index.html`，浏览器就会打开它。
+5. 改代码 → 保存 → 浏览器按 F5 刷新 → 看效果。
+
+就这么简单。这个循环（**写 → 存 → 刷 → 看**）你会重复几千次，越快越舒服。
+
+## 一、你的第一个 HTML 页面
+
+把下面这段完整复制到 `index.html` 并双击打开：
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>我的第一个网页</title>
+  </head>
+  <body>
+    <h1>你好，世界</h1>
+    <p>这是我用 HTML 写的第一个页面。</p>
+  </body>
+</html>
+```
+
+你应该看到一个大标题"你好，世界"和下面一行小字。
+
+**解剖一下这段代码。** HTML 由一堆"**标签**"组成。标签长这样：`<标签名>内容</标签名>`。带斜杠的那一半叫**闭合标签**。
+
+- `<!doctype html>`：第一行固定写，告诉浏览器"按现代标准来"。不用深究。
+- `<html>...</html>`：整个页面的最外层包裹。所有东西都在它里面。
+- `<head>...</head>`：**看不见**的信息（标题、编码、引入的样式表）。
+- `<body>...</body>`：**看得见**的页面内容（标题、段落、按钮……）。
+- `<h1>`：一级标题（Heading 1）。`<h2>`、`<h3>` 到 `<h6>` 依次变小。
+- `<p>`：段落（Paragraph）。
+
+**标签可以嵌套**：`<body>` 里放 `<h1>`，`<h1>` 里放文字。嵌套关系就是所谓的"父子关系"——`<body>` 是 `<h1>` 的父元素。
+
+**动手试试 ①**：把 `<h1>` 改成 `<h2>`，看字号变小；再加一行 `<h3>小标题</h3>` 和另一段 `<p>`，看浏览器的反应。
+
+## 二、HTML 标签和属性
+
+### 2.1 标签的"**属性**"
+
+属性写在开始标签里，格式是 `属性名="值"`：
+
+```html
+<a href="https://tauri.app">打开 Tauri 官网</a>
+<img src="cat.jpg" alt="一只猫" />
+<input type="text" placeholder="请输入姓名" />
+```
+
+- `<a>` 是链接（anchor），`href` 属性说明链到哪里。
+- `<img>` 是图片，`src` 是图片地址，`alt` 是"图片加载不出时显示的文字"（也给盲人屏幕阅读器用）。
+- `<input>` 是输入框，`type` 决定它是普通文本、密码、数字还是复选框。
+
+**自闭合标签**：`<img>`、`<input>`、`<br>`（换行）、`<hr>`（横线）这些没有内容，写成 `<img ... />` 就行，不用结束标签。
+
+### 2.2 最常用的 15 个标签
+
+背下这张表够你写 90% 的界面：
+
+| 标签 | 作用 | 例子 |
+| --- | --- | --- |
+| `<h1>`~`<h6>` | 标题，从大到小 | `<h1>欢迎</h1>` |
+| `<p>` | 段落 | `<p>正文一段话</p>` |
+| `<a>` | 链接 | `<a href="/about">关于</a>` |
+| `<img>` | 图片 | `<img src="logo.png" alt="logo" />` |
+| `<ul>` + `<li>` | 无序列表（圆点） | `<ul><li>苹果</li><li>香蕉</li></ul>` |
+| `<ol>` + `<li>` | 有序列表（数字） | 同上换成 `<ol>` |
+| `<button>` | 按钮 | `<button>点我</button>` |
+| `<input>` | 输入框 | `<input type="text" />` |
+| `<label>` | 输入框的说明 | `<label>姓名 <input /></label>` |
+| `<form>` | 表单容器 | `<form>...</form>` |
+| `<div>` | 万能容器（块级） | `<div>一堆东西</div>` |
+| `<span>` | 万能容器（行内） | `<span>一小段</span>` |
+| `<br>` | 换行 | `文字<br>换行` |
+| `<strong>` | 重要文字（加粗） | `<strong>警告</strong>` |
+| `<em>` | 强调（斜体） | `<em>特别提醒</em>` |
+
+`<div>` 和 `<span>` 特别重要：它们本身**没有语义**，就是纯粹的"盒子"，用来把一堆东西包起来方便加样式。
+- `<div>` 是**块级**——默认**独占一行**，像一块砖。
+- `<span>` 是**行内**——像一个文字片段，同行能挤多个。
+
+**动手试试 ②**：写一个小页面，包含一个标题、一段话、一个"我的爱好"有序列表（至少 3 项）、一张图（可以随便找网上的图片链接贴进 `src`）、一个按钮。
+
+### 2.3 文档骨架的标准写法
+
+后面 CloudTone 里完整的 `index.html` 其实长这样：
 
 ```html
 <!doctype html>
@@ -19,9 +116,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0f0f14" />
     <title>CloudTone</title>
-    <link rel="icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/src/styles/index.css" />
   </head>
   <body>
@@ -31,307 +126,493 @@
 </html>
 ```
 
-每一行都不是装饰：
+逐行理解：
 
-- `<!doctype html>`：告诉浏览器"用标准模式渲染"。没它就会退回怪异模式（Quirks Mode），盒模型算法都会变。
-- `lang="zh-CN"`：屏幕阅读器、自动断词、拼写检查都看它。SEO 也看。
-- `charset="utf-8"`：必须出现在 `<head>` 前 1024 字节，否则浏览器可能误判编码。
-- `viewport`：移动端适配命脉。Tauri 桌面端用不到缩放，但保留它能让 WebView 行为和现代浏览器一致。
-- `theme-color`：Windows 标题栏、PWA、某些 Linux 窗口管理器会读取它。
-- `<script type="module">`：启用 ESM。Vite 出的代码是 ESM，这个属性是刚需。
-- `<div id="root">`：React 挂载点。Tauri 里永远是这一个根。
+- `<meta charset="utf-8" />` → 使用 UTF-8 编码，**中文不会乱码的保险**。
+- `<meta name="viewport" ... />` → 移动设备上的缩放设置，Tauri 桌面端用不到但保留更稳妥。
+- `<link rel="stylesheet" href="..." />` → **引入一个 CSS 文件**。
+- `<div id="root"></div>` → 一个空盒子，React 启动后会把整个界面塞进去（第 5 章讲）。
+- `<script type="module" src="..."></script>` → **引入一个 JavaScript 文件**。`type="module"` 表示用现代模块化方式加载。
 
-### 1.2 DOM 是树，不是字符串
+现在你应该能看懂任何网页源码的开头了。
 
-浏览器读到 HTML，会建一棵 **DOM 树**：
+## 三、CSS：给 HTML 穿衣服
 
-```
-Document
-└── html
-    ├── head
-    │   ├── meta
-    │   ├── title
-    │   └── link
-    └── body
-        ├── div#root
-        └── script
-```
+### 3.1 第一个 CSS 示例
 
-所有 CSS 和 JS 都是在操作这棵树：增删节点、改属性、监听事件。React 所做的事情也只是"声明式地描述这棵树应该长什么样"。
-
-### 1.3 语义化：标签不是 `<div>` 的同义词
-
-HTML5 引入的语义标签不只是换皮：
-
-| 标签 | 语义 | 谁在乎 |
-| --- | --- | --- |
-| `<header>` | 顶部、横幅区域 | 屏幕阅读器、SEO |
-| `<nav>` | 导航区 | 屏幕阅读器跳转快捷键 |
-| `<main>` | 主要内容（一页只能一个） | 屏幕阅读器 Skip To Main |
-| `<article>` | 自成一体的内容块 | RSS、ReadMode |
-| `<section>` | 有主题的分区（配标题） | 大纲算法 |
-| `<aside>` | 辅助内容、侧栏 | 屏幕阅读器 |
-| `<footer>` | 页脚、区块脚部 | 屏幕阅读器 |
-| `<figure>/<figcaption>` | 图 + 说明 | 搜索引擎抓图 |
-| `<time>` | 机器可读的时间 | 搜索引擎结构化数据 |
-
-CloudTone 里大量 `<div>` 可以读作"没想好语义的容器"；但顶栏写成 `<header>`、侧栏 `<nav>`、歌曲列表区域 `<main>`，对可访问性和未来扩展都更好。
-
-### 1.4 可访问性（a11y）速成
-
-桌面应用被忽视最多的事情就是可访问性。Tauri 的 WebView 继承浏览器 ARIA 支持，几条最小实践：
-
-- 按钮用 `<button>`，不要用"可点击的 `<div>`"——否则不能用键盘 Tab/Enter 触发。
-- 图标按钮必须配 `aria-label`：`<button aria-label="播放">▶</button>`。
-- 表单 input 要有 `<label>` 关联：`<label for="q">搜索</label><input id="q" />`。或者把 input 嵌在 label 里。
-- 状态变化用 `aria-live="polite"` 通知屏幕阅读器（比如"下载完成"）。
-- `alt` 写给看不到图的人看：装饰图写 `alt=""`，内容图写"专辑封面：起风了"。
-
-### 1.5 表单元素
+把下面复制到 `index.html`，**整体替换**之前的内容：
 
 ```html
-<form onSubmit={submit}>
-  <label>
-    关键词
-    <input type="search" name="q" required maxlength="100" autocomplete="off" />
-  </label>
-  <label>
-    数量
-    <input type="number" name="limit" min="1" max="500" step="10" value="50" />
-  </label>
-  <label>
-    类型
-    <select name="type">
-      <option value="song">歌曲</option>
-      <option value="album">专辑</option>
-    </select>
-  </label>
-  <label>
-    <input type="checkbox" name="online" /> 同时搜索在线
-  </label>
-  <button type="submit">搜索</button>
-  <button type="reset">清空</button>
-</form>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSS 初体验</title>
+    <style>
+      h1 {
+        color: white;
+        background-color: #4f46e5;
+        padding: 20px;
+      }
+      p {
+        color: #555;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>你好，CSS</h1>
+    <p>这段段落变成灰色了，字号也变大了。</p>
+  </body>
+</html>
 ```
 
-`type` 值决定了输入法、键盘、校验规则。`email`/`url`/`tel`/`search`/`number`/`date` 各有用途。HTML5 自带校验（`required`、`pattern`、`min`/`max`）够用时就别自己写。
+保存刷新，你应该看到：一个紫色背景、白色字的大标题，下面是灰色变大的正文。
 
-### 1.6 HTML 转义和安全
-
-如果你把用户输入直接塞进 `innerHTML`，就给了 XSS 机会：
-
-```js
-el.innerHTML = userInput; // 危险
-el.textContent = userInput; // 安全
-```
-
-React 的 JSX 默认对 `{expr}` 做转义，`<p>{userInput}</p>` 是安全的；你必须显式写 `dangerouslySetInnerHTML` 才能绕过它——注意那个名字，React 在提醒你。
-
-## 二、CSS 的四大核心
-
-CSS 看起来是一堆属性赋值，真正构成"理解力"的是四块：**选择器 + 层叠 + 盒模型 + 布局**。
-
-### 2.1 选择器系统
-
-```css
-/* 元素 */        p { }
-/* 类 */          .title { }
-/* ID */          #hero { }
-/* 属性 */        input[type="checkbox"] { }
-/* 后代 */        .card .title { }
-/* 子代 */        .card > .title { }
-/* 相邻 */        h1 + p { }
-/* 通用兄弟 */    h1 ~ p { }
-/* 伪类 */        button:hover:not(:disabled) { }
-/* 伪元素 */      p::first-letter { }
-/* 现代伪类 */    li:has(> img) { }  /* 包含 img 的 li */
-                 :is(h1, h2, h3) { }  /* 任一匹配 */
-                 :where(h1, h2, h3) { } /* 同上但 specificity 为 0 */
-```
-
-**优先级（specificity）** 的简化打分：
+**解剖 CSS 语法**：
 
 ```
-内联 style      (1,0,0,0)
-#id             (0,1,0,0)
-.class / [attr] / :pseudo-class (0,0,1,0)
-tag / ::pseudo-element (0,0,0,1)
-```
-
-高位比低位强，打不平再按**出现顺序**：后定义的胜。`!important` 强行升级（别滥用）。
-
-**继承**：颜色、字体、行高等文字相关属性会被子元素继承；盒子相关（width/margin/border）不会。
-
-### 2.2 Cascade：层叠三板斧
-
-一条样式最终有没有生效，走三轮：
-
-1. **来源 + 层**：用户代理样式 < user 样式 < 作者样式，后者压前者。Tailwind/Bootstrap 是作者样式。`@layer` 让你显式声明顺序：
-
-```css
-@layer base, components, utilities;
-@layer base { a { color: blue; } }
-@layer utilities { .text-red { color: red !important; } } /* 保证 utilities 总赢 */
-```
-
-2. **Specificity**：如上。
-3. **Source order**：都打平看谁在后面。
-
-日常最常见的 bug 是你的 `.active .title` 被 `.card .title` 压住——数数分数就能判。DevTools 的 Elements 面板会把**被覆盖的样式划掉**，非常清楚。
-
-### 2.3 盒模型
-
-```css
-.box {
-  width: 200px;
-  padding: 16px;
-  border: 2px solid;
-  margin: 8px;
-  box-sizing: border-box;  /* 推荐统一设置 */
+选择器 {
+  属性: 值;
+  属性: 值;
 }
 ```
 
-- `content-box`（默认）：`width` 只算内容。实际占地 = width + padding*2 + border*2 + margin*2。
-- `border-box`：`width` 包含 content + padding + border。margin 仍在外。
+- **选择器**告诉浏览器"**要给谁加样式**"。`h1` 就是"页面上所有 `<h1>` 元素"。
+- **属性: 值**告诉浏览器"**加什么样式**"。`color: white` 就是"文字颜色设为白色"。
 
-几乎所有现代项目都在根上写：
+### 3.2 CSS 写在哪里？
+
+三种方式，由差到好排序：
+
+1. **行内样式**（不推荐，只做临时调试）：
+
+   ```html
+   <h1 style="color: red;">红色标题</h1>
+   ```
+
+2. **内部样式表**（小页面调试 OK）：把 `<style>...</style>` 放在 `<head>` 里，像上面那个例子。
+3. **外部样式表**（正式项目都这么做）：单独写一个 `style.css`，在 HTML 里引入：
+
+   ```html
+   <link rel="stylesheet" href="style.css" />
+   ```
+
+   ```css
+   /* style.css */
+   h1 { color: red; }
+   ```
+
+CloudTone 用的是第三种（配合后面章节的 Tailwind）。
+
+### 3.3 常用选择器
+
+这是 CSS 的**核心技能**——怎么精准地选中你想改的元素。
+
+```css
+/* 1. 标签选择器：所有 <p> */
+p { color: gray; }
+
+/* 2. 类选择器：class="title" 的所有元素 */
+.title { font-size: 24px; }
+
+/* 3. ID 选择器：id="hero" 的那个元素（一个页面只应有一个同名 id） */
+#hero { background: black; }
+
+/* 4. 后代选择器：.card 里面的所有 .title */
+.card .title { color: blue; }
+
+/* 5. 子代选择器：.card 的直接子元素中的 .title */
+.card > .title { color: blue; }
+
+/* 6. 属性选择器 */
+input[type="text"] { border: 1px solid gray; }
+
+/* 7. 伪类：特定状态时生效 */
+button:hover { background: yellow; }      /* 鼠标悬停 */
+button:disabled { opacity: 0.5; }         /* 被禁用 */
+input:focus { outline: 2px solid blue; }  /* 获得焦点 */
+```
+
+**类（class）是最常用的**。用法：
+
+```html
+<p class="title">标题</p>
+<p class="title important">重要标题</p>  <!-- 一个元素可以有多个类，空格分隔 -->
+```
+
+```css
+.title { font-size: 20px; }
+.important { color: red; }
+```
+
+### 3.4 优先级：谁说了算？
+
+如果多条规则都匹配到同一个元素，谁赢？简单版打分：
+
+| 规则类型 | 分数 |
+| --- | --- |
+| 行内 `style="..."` | 1000 |
+| ID 选择器 `#hero` | 100 |
+| 类 `.title` / 属性 `[type]` / 伪类 `:hover` | 10 |
+| 标签 `p` / 伪元素 `::before` | 1 |
+
+分高的赢；同分时**后面写的**赢。
+
+日常 99% 情况你只用到类选择器，基本不会出冲突。万一碰上"我明明写了颜色但没生效"，按 F12 打开浏览器开发者工具，点 Elements 面板，能看到哪条规则生效、哪条被划掉，一目了然。
+
+**动手试试 ③**：写一个页面，有 2 个按钮。第一个加类 `.primary`，背景蓝色白字；第二个加类 `.danger`，背景红色白字。都加 `:hover` 时背景颜色变深。
+
+## 四、盒模型：CSS 的核心概念
+
+每一个 HTML 元素，在页面上都是一个"**盒子**"。每个盒子由四层组成（从里到外）：
+
+```
+    ┌─────────── margin（外边距，和别人的距离）─────────┐
+    │                                                      │
+    │   ┌────── border（边框）──────────────────┐          │
+    │   │                                        │          │
+    │   │   ┌── padding（内边距，留白）─────┐    │          │
+    │   │   │                                │    │          │
+    │   │   │       content（内容）          │    │          │
+    │   │   │                                │    │          │
+    │   │   └────────────────────────────────┘    │          │
+    │   │                                        │          │
+    │   └────────────────────────────────────────┘          │
+    │                                                      │
+    └──────────────────────────────────────────────────────┘
+```
+
+CSS 里对应：
+
+```css
+.box {
+  width: 200px;      /* 内容宽度 */
+  height: 100px;     /* 内容高度 */
+  padding: 16px;     /* 四个方向的内边距 */
+  border: 2px solid black;  /* 边框 */
+  margin: 10px;      /* 四个方向的外边距 */
+}
+```
+
+**padding vs margin 的区别**（这是初学者最困惑的）：
+- `padding` 是**盒子内部**的留白——比如按钮里文字和边框之间的空隙。
+- `margin` 是**盒子外部**的距离——比如两个段落之间的空行。
+
+### 4.1 必加的一条"保命"样式
+
+默认情况下，`width: 200px` 指的是**内容**宽，实际占地 = `width + padding + border`。结果你设了 `width: 200px; padding: 20px;`，实测是 240px，很反直觉。
+
+解法：几乎所有现代项目都在最开头写：
 
 ```css
 *, *::before, *::after { box-sizing: border-box; }
 ```
 
-Tailwind 默认做了这件事。
+这行让 `width` 包含 padding 和 border。你设 200px 就是 200px，所见即所得。**本章后面所有例子都假设你加了这一行。**
 
-**margin 折叠（collapsing margins）**：两个垂直相邻的 margin 只取其中较大的一个，不叠加。仅在 block flow 下发生，Flex/Grid 容器里的子元素不会发生。遇到"margin 明明是 20+30 怎么实测只有 30"大概率就是它。
-
-### 2.4 Display：布局的入口
+### 4.2 四个方向单独设
 
 ```css
-display: block;        /* 独占一行（div, p） */
-display: inline;       /* 文本级别，不能设 width/height（span, a） */
-display: inline-block; /* 行内但可设尺寸 */
-display: flex;         /* 一维布局容器 */
-display: inline-flex;  /* 行内 flex */
-display: grid;         /* 二维布局容器 */
-display: contents;     /* 自身不产生盒子，子元素"透出" */
-display: none;         /* 完全不渲染（占位也没） */
+.box {
+  padding-top: 10px;
+  padding-right: 20px;
+  padding-bottom: 10px;
+  padding-left: 20px;
+  /* 等价于简写： */
+  padding: 10px 20px 10px 20px;   /* 上 右 下 左 */
+  padding: 10px 20px;              /* 上下10 左右20 */
+  padding: 10px;                   /* 四边都10 */
+}
 ```
 
-HTML 默认值是有的：`<div>` 是 block，`<span>` 是 inline。但现代布局里你会频繁改。
+`margin` 和 `border` 也是同样的简写规则。
 
-## 三、Flexbox 完全指南
+**动手试试 ④**：画一个 200x200 的盒子，背景灰色，内边距 20px，边框 2px 红色实线，外边距 30px。盒子里放一段文字，观察文字离边框的距离。
 
-记住这幅图：
+## 五、尺寸、颜色、字体
+
+### 5.1 长度单位
+
+| 单位 | 含义 | 什么时候用 |
+| --- | --- | --- |
+| `px` | 像素（绝对） | 最常用，默认就对 |
+| `%` | 相对父元素 | 例如 `width: 50%` 占父宽一半 |
+| `rem` | 相对根元素字号 | 做整体缩放（默认 1rem = 16px） |
+| `em` | 相对自己父元素字号 | 排版里偶尔用，嵌套容易乱 |
+| `vw` / `vh` | 视口 1% 宽 / 1% 高 | 做全屏效果，如 `height: 100vh` |
+
+初学阶段就记住 **`px`** 和 **`%`**，其他用到再说。
+
+### 5.2 颜色
+
+四种写法，效果一样：
+
+```css
+color: red;                    /* 颜色名，常用的有 red/blue/white/black 等 */
+color: #ff0000;                /* 十六进制：#RRGGBB */
+color: #f00;                   /* 三位简写 */
+color: rgb(255, 0, 0);         /* 红绿蓝 0-255 */
+color: rgba(255, 0, 0, 0.5);   /* 最后是透明度 0-1 */
+```
+
+常用参考：
+- 白 `#fff` / 黑 `#000` / 灰 `#888`
+- 主题蓝 `#4f46e5` / 警告红 `#ef4444` / 成功绿 `#10b981`
+
+### 5.3 字体
+
+```css
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  font-weight: 400;       /* 400 普通 / 700 粗 / 900 超粗 */
+  line-height: 1.5;       /* 行高，建议 1.4 ~ 1.7 */
+  text-align: left;       /* left / center / right / justify */
+}
+```
+
+`font-family` 可以写多个，用逗号隔开，**前面的找不到就用后面的**。最后一个一般写 `sans-serif`（无衬线通用字体）当兜底。
+
+### 5.4 一个完整的排版示例
+
+```html
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", sans-serif;
+    line-height: 1.6;
+    background: #f5f5f7;
+    color: #333;
+    margin: 0;
+    padding: 40px;
+  }
+  .card {
+    background: white;
+    max-width: 600px;
+    margin: 0 auto;         /* 左右 auto 实现水平居中 */
+    padding: 24px;
+    border-radius: 12px;    /* 圆角 */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);  /* 阴影 */
+  }
+  .card h2 { margin-top: 0; color: #1a1a1a; }
+  .card p { color: #666; }
+</style>
+
+<div class="card">
+  <h2>一个卡片</h2>
+  <p>看，一点 CSS 就能让页面不像原始 HTML 那么丑。</p>
+</div>
+```
+
+把这段替换到 `index.html` 的 `<style>` 和 `<body>` 部分，你会看到一个居中的白色圆角卡片。**这就是现代网页 UI 的基本长相**。
+
+## 六、布局入门：文档流与 display
+
+默认情况下，HTML 元素按**从上到下**（块级）或**从左到右**（行内）排列。这叫"**文档流**"。
+
+- **块级元素**（`<div>`、`<p>`、`<h1>`……）：独占一行，宽度撑满父元素。
+- **行内元素**（`<span>`、`<a>`、`<strong>`……）：跟文字一起排，一行能挤多个。
+
+`display` 属性可以改变这个行为：
+
+```css
+display: block;         /* 变块级 */
+display: inline;        /* 变行内 */
+display: inline-block;  /* 行内但能设宽高 */
+display: flex;          /* 变成 Flex 容器（下一节讲） */
+display: grid;          /* 变成 Grid 容器 */
+display: none;          /* 完全隐藏，不占空间 */
+```
+
+初学者最常遇到："我给 `<span>` 设 `width: 200px` 怎么没效果？"——因为 `<span>` 默认是 `inline`，不接受宽高。改成 `inline-block` 就行。
+
+## 七、Flexbox：一维布局（最重要的一节）
+
+90% 的网页布局问题用 Flex 就能解决。记住这幅图：
 
 ```
-┌ justify-content (主轴) ──────────────►
-│  ┌────┐ ┌────┐ ┌────┐
-│  │ A  │ │ B  │ │ C  │   align-items (交叉轴)
-│  └────┘ └────┘ └────┘
-▼
+容器（display: flex）
+┌────────────────────────────────────────────────┐
+│  主轴方向 →                                     │
+│  ┌─────┐  ┌─────┐  ┌─────┐                    │
+│  │ A   │  │ B   │  │ C   │    ↕ 交叉轴        │
+│  └─────┘  └─────┘  └─────┘                    │
+└────────────────────────────────────────────────┘
+       justify-content 控制主轴方向
+       align-items 控制交叉轴方向
 ```
 
-### 3.1 容器属性
+Flex 的核心就两件事：
+1. 给**父元素**加 `display: flex`，它就变成"Flex 容器"。
+2. 然后用几个属性控制**子元素**怎么排。
+
+### 7.1 一个最小的 Flex 例子
+
+```html
+<style>
+  .row {
+    display: flex;
+    gap: 12px;                  /* 子元素之间的间距 */
+    background: #eee;
+    padding: 10px;
+  }
+  .row > div {
+    background: #4f46e5;
+    color: white;
+    padding: 20px;
+  }
+</style>
+
+<div class="row">
+  <div>A</div>
+  <div>B</div>
+  <div>C</div>
+</div>
+```
+
+三个 `<div>` 原本会各占一行，加了 `display: flex` 后**变成同一行横排**。
+
+### 7.2 四个必须会的容器属性
 
 ```css
 .container {
   display: flex;
-  flex-direction: row;       /* row | row-reverse | column | column-reverse */
-  flex-wrap: nowrap;         /* nowrap | wrap | wrap-reverse */
+
+  /* 1. 方向：row 横排（默认）/ column 竖排 */
+  flex-direction: row;
+
+  /* 2. 主轴对齐（横排时就是"水平"对齐） */
   justify-content: flex-start;
-    /* flex-start | center | flex-end | space-between | space-around | space-evenly */
+    /* flex-start 左 | center 中 | flex-end 右 |
+       space-between 两端对齐中间平分 |
+       space-around 每项两侧均有间距 */
+
+  /* 3. 交叉轴对齐（横排时就是"垂直"对齐） */
   align-items: stretch;
-    /* stretch | flex-start | center | flex-end | baseline */
-  align-content: stretch;    /* 只有多行 wrap 时才生效 */
-  gap: 12px;                 /* 替代 margin 的现代做法 */
+    /* stretch 拉伸撑满 | flex-start 顶 | center 中 | flex-end 底 */
+
+  /* 4. 子元素之间的间距 */
+  gap: 12px;
 }
 ```
 
-### 3.2 子项属性
+### 7.3 四个经典需求的标准答案
+
+**需求 1：水平 + 垂直居中**（以前是经典面试题）：
 
 ```css
-.item {
-  flex-grow: 1;    /* 剩余空间分配权重 */
-  flex-shrink: 1;  /* 空间不足时压缩权重 */
-  flex-basis: 0;   /* 初始大小（auto 表示按 content） */
-  flex: 1 1 0;     /* grow shrink basis 的简写，常用 flex: 1 表示均分 */
-  align-self: auto;/* 覆盖容器 align-items */
-  order: 0;        /* 显示顺序（非 DOM 顺序） */
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;           /* 要有高度才能垂直居中 */
 }
 ```
 
-### 3.3 日常模式
-
-**水平+垂直居中**：
-
-```css
-.center { display: flex; justify-content: center; align-items: center; }
+```html
+<div class="center"><div>我被居中了</div></div>
 ```
 
-**一行三列，中间自适应**：
+**需求 2：顶部栏，左边标题右边按钮**：
+
+```css
+.topbar {
+  display: flex;
+  justify-content: space-between;   /* 两端对齐 */
+  align-items: center;
+  padding: 12px 20px;
+}
+```
+
+```html
+<div class="topbar">
+  <h1>CloudTone</h1>
+  <button>登录</button>
+</div>
+```
+
+**需求 3：一行三列，中间自适应撑满**：
 
 ```css
 .row { display: flex; align-items: center; gap: 8px; }
-.row > .main { flex: 1; min-width: 0; }
+.row > .middle { flex: 1; }    /* 关键：flex: 1 表示占用所有剩余空间 */
 ```
 
-`min-width: 0` 非常关键——Flex item 的默认最小尺寸是它的 content（比如长歌名），会把 truncate 顶破。
-
-**顶部栏左右结构**：
-
-```css
-.bar { display: flex; justify-content: space-between; align-items: center; }
+```html
+<div class="row">
+  <div>左侧固定</div>
+  <div class="middle">中间自适应</div>
+  <div>右侧固定</div>
+</div>
 ```
 
-**底部固定（sticky footer）**：
+`flex: 1` 是 Flex 里**最常用的子项属性**，含义："**剩余空间都给我**"。多个子项都写 `flex: 1` 就平分。
+
+**需求 4：多行自动换行（标签云）**：
 
 ```css
-body { min-height: 100vh; display: flex; flex-direction: column; }
-.content { flex: 1; }
+.tags {
+  display: flex;
+  flex-wrap: wrap;       /* 装不下时换行 */
+  gap: 8px;
+}
 ```
 
-### 3.4 陷阱集锦
+### 7.4 Flex 常见坑
 
-- `height: auto` 的 flex 子项可能撑不起来，需要 `flex: 1` 或显式 height。
-- `align-items: stretch`（默认）会把子项拉满；放图片时可能被拉变形，写 `align-items: flex-start`。
-- `flex: 1` 等价 `flex: 1 1 0%`。`flex: auto` 是 `1 1 auto`，大小会参考 content。
-- 子项的 margin auto 会吃掉剩余空间，能做花式对齐：`<span style="margin-left: auto">` 把自己推到最右。
+- **想垂直居中没成功**？检查容器有没有高度——容器本身如果是内容高，`align-items: center` 看起来没反应。
+- **文字长了撑破布局**？给这一列加 `min-width: 0`，否则 Flex 默认不让子项比它的内容更窄。
+- **按钮被拉变形**？`align-items` 默认 `stretch`，改成 `flex-start` 或 `center` 即可。
 
-## 四、Grid 完全指南
+**动手试试 ⑤**：写一个顶部导航栏，左边是 logo 文字，中间是三个菜单项（首页/发现/我的），右边是一个"登录"按钮。用 Flex 实现。
 
-一维不够用就上 Grid。Grid 适合页面级布局（三栏 Shell、瀑布流、卡片网格）。
+## 八、Grid：二维布局
 
-### 4.1 容器
+Flex 只能管一维（要么一行要么一列）。当你要做**二维网格**（比如三栏布局、卡片墙），就用 Grid。
+
+### 8.1 一个最小的 Grid 例子
+
+```html
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;   /* 三等宽列 */
+    gap: 10px;
+  }
+  .grid > div {
+    background: #4f46e5;
+    color: white;
+    padding: 20px;
+    text-align: center;
+  }
+</style>
+
+<div class="grid">
+  <div>1</div><div>2</div><div>3</div>
+  <div>4</div><div>5</div><div>6</div>
+</div>
+```
+
+6 个 div 自动变成 2 行 3 列。
+
+**`fr` 是什么？** Fraction（分数）的缩写，表示"剩余空间的份数"。`1fr 2fr 1fr` 意思是三列宽度比 1:2:1。
+
+### 8.2 常用的三个模板写法
+
+**模板 1：固定骨架（左 240 + 自适应中间 + 右 320）**：
 
 ```css
-.grid {
+.layout {
   display: grid;
-  grid-template-columns: 240px 1fr 320px;  /* 三栏 */
-  grid-template-rows: 56px 1fr 72px;       /* 三排 */
-  gap: 12px;                                /* row-gap & column-gap */
-  grid-template-areas:
-    "sidebar header header"
-    "sidebar main   panel"
-    "sidebar player player";
+  grid-template-columns: 240px 1fr 320px;
+  height: 100vh;     /* 占满整个视口高度 */
 }
 ```
 
-`fr` 单位表示剩余空间的分数。`repeat(12, 1fr)` 十二列等宽。`minmax(200px, 1fr)` 最小 200 最大自适应。
+这是 CloudTone 主界面的基础结构。
 
-### 4.2 子项定位
-
-```css
-.header { grid-area: header; }
-.main   { grid-area: main; }
-
-/* 或者显式 */
-.item {
-  grid-column: 2 / 5;    /* 从第 2 条线到第 5 条线 */
-  grid-row: span 2;      /* 跨 2 行 */
-}
-```
-
-### 4.3 自适应卡片墙
+**模板 2：自适应卡片墙**：
 
 ```css
 .cards {
@@ -341,294 +622,284 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 }
 ```
 
-这一条就能让卡片随宽度自动折行，每列至少 180px。CloudTone 专辑列表经典用法。
+一行话理解：**每列最少 180px，能放几列放几列，剩余空间平分**。窗口变宽，自动加列；窗口变窄，自动换行。非常实用。
 
-### 4.4 Grid vs Flex 怎么选
-
-- 内容驱动、一维流式 → Flex。
-- 固定骨架、二维精确控制 → Grid。
-- 实际项目经常嵌套：Grid 分大区，每个大区内部用 Flex。
-
-## 五、Position 与层叠
+**模板 3：带名字的区域**（适合复杂布局）：
 
 ```css
-position: static;   /* 默认，不接受 top/left */
-position: relative; /* 相对自己原位偏移，仍占原位 */
-position: absolute; /* 脱离文档流，相对最近的 positioned 祖先 */
-position: fixed;    /* 相对 viewport */
-position: sticky;   /* 滚动到阈值前是 relative，之后是 fixed */
-```
-
-重要：`absolute` 找的是**最近的非 static 祖先**，默认是 `<html>`。做弹窗时父容器记得加 `position: relative`。
-
-### 5.1 z-index 与 stacking context
-
-`z-index` 只在同一个 stacking context 里比较。什么情况下会新开一个 stacking context？非 static 的 position + z-index 不为 auto；`opacity < 1`；`transform`、`filter`、`will-change` 等。
-
-这就解释了：为什么你把 `z-index: 9999` 加在里层元素上还是被外层 `z-index: 10` 的东西盖住——因为它们不在同一个 context 里。
-
-### 5.2 现代居中
-
-CSS 居中以前是面试题，现在只要：
-
-```css
-/* 单行 */ display: grid; place-items: center;
-/* 或 */ display: flex; justify-content: center; align-items: center;
-```
-
-垂直居中文字行高技巧依然有用：`height: 40px; line-height: 40px;` 对单行文本最省。
-
-## 六、单位、颜色、响应式
-
-### 6.1 长度单位
-
-- `px`：绝对像素（实际是 CSS 像素，设备像素还涉及 DPR）。
-- `rem`：根元素 font-size 的倍数。`html { font-size: 16px }` 时 `1rem = 16px`。缩放友好。
-- `em`：父元素 font-size 的倍数。嵌套容易出坑，一般只用于排版。
-- `%`：相对父元素对应属性。
-- `vw`/`vh`：视口 1% 宽/高。`100vh` 有移动端地址栏坑，替代方案 `100dvh`（dynamic viewport height）。
-- `svh`/`lvh`/`dvh`：小/大/动态视口高，处理带 UI 条的移动浏览器。
-- `ch`：一个字符宽度。做行宽 `max-width: 65ch` 读起来最舒服。
-
-### 6.2 颜色
-
-```css
-color: red;                  /* 命名 */
-color: #ff0000;              /* hex */
-color: rgb(255 0 0 / 50%);   /* 现代语法 */
-color: rgba(255, 0, 0, 0.5); /* 老语法 */
-color: hsl(0 100% 50% / 50%);/* 更直观 */
-color: oklch(70% 0.25 20);   /* 感知均匀，推荐 */
-```
-
-OKLCH 在主题设计里很有用：L 是亮度、C 是饱和度、H 是色相。用它生成色板不会在蓝色段暗绿色段亮。
-
-### 6.3 媒体查询与响应式
-
-```css
-.sidebar { width: 240px; }
-@media (max-width: 900px) {
-  .sidebar { width: 56px; }   /* 窄屏折叠为图标 */
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 60px 1fr 80px;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main"
+    "player  player";
+  height: 100vh;
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #0a0a0a; --fg: #eee; }
-}
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
-}
+.sidebar { grid-area: sidebar; }
+.header  { grid-area: header; }
+.main    { grid-area: main; }
+.player  { grid-area: player; }
 ```
 
-Tauri 是桌面应用，但窗口可以被用户任意拉宽/拉窄；CloudTone 设计时我们坚持"≥ 1024 不折叠、900~1024 折叠侧栏、< 900 只显示内容区"。
+用 `grid-template-areas` 画出整个布局的"平面图"，再把每个元素 `grid-area` 指到对应格子。**可读性很强**。
 
-### 6.4 容器查询（新，但已广泛支持）
+### 8.3 Grid 和 Flex 什么时候用哪个？
+
+- **一维、内容驱动** → Flex（导航栏、按钮组、小列表）。
+- **二维、整体骨架** → Grid（整页布局、卡片墙）。
+- **实际项目通常嵌套**：大骨架用 Grid，每个区块内部再用 Flex。
+
+**动手试试 ⑥**：写一个个人主页骨架：顶部 60px 是页眉，左边 200px 是导航，右边剩余空间是内容区。用 Grid 实现。
+
+## 九、Position：自由定位与层叠
+
+`position` 属性控制元素**是否脱离文档流**。
 
 ```css
-.card-grid { container-type: inline-size; container-name: grid; }
-
-@container grid (min-width: 600px) {
-  .card { grid-template-columns: 1fr 2fr; }
-}
+position: static;    /* 默认，按文档流排 */
+position: relative;  /* 相对自己原位偏移，但仍然占原位 */
+position: absolute;  /* 脱离文档流，相对最近的"有定位"的祖先 */
+position: fixed;     /* 固定在屏幕上，滚动也不动 */
+position: sticky;    /* 滚到一定位置后吸住 */
 ```
 
-它让组件**根据自己的容器宽度**响应式，而不是 viewport。写独立组件时比 media query 灵活得多。
-
-## 七、CSS 变量与主题
-
-### 7.1 定义和使用
-
-```css
-:root {
-  --bg: #0f0f14;
-  --fg: #f2f2f7;
-  --brand: oklch(70% 0.18 20);
-  --radius: 8px;
-}
-
-.card { background: var(--bg); color: var(--fg); border-radius: var(--radius); }
-```
-
-变量遵循继承与层叠，可以在局部覆盖：
-
-```css
-.theme-light { --bg: #f6f6f8; --fg: #111; }
-```
-
-切换主题只需给根节点加/去类名。CloudTone 就是这么做的（Ch 24）。
-
-### 7.2 和 Tailwind 合作
-
-Tailwind v3 里推荐把设计 token 写成 CSS 变量，然后在 `tailwind.config` 里引用：
-
-```css
-:root { --color-brand-500: oklch(70% 0.18 20); }
-```
-
-```ts
-// tailwind.config.ts
-colors: {
-  brand: { 500: "oklch(var(--color-brand-500) / <alpha-value>)" },
-}
-```
-
-这样暗/亮/跟随系统三种主题都能切换，无需在 config 里硬编码。
-
-## 八、过渡、变换与动画
-
-### 8.1 Transform
-
-```css
-.thumb { transition: transform 200ms ease; }
-.thumb:hover { transform: scale(1.05) rotate(-2deg); }
-```
-
-`transform` 和 `opacity` 由合成器（compositor）处理，不触发重排/重绘，60fps 友好。尽量只动这两者。
-
-常用变换：`translate(X, Y)`, `translateZ`（开启 GPU 层）, `scale`, `rotate`, `skew`, `matrix`。`transform-origin` 改变换中心。
-
-### 8.2 过渡 transition
-
-```css
-.btn {
-  transition-property: transform, background-color, opacity;
-  transition-duration: 200ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-delay: 0ms;
-}
-/* 简写 */
-.btn { transition: all 200ms ease; }
-```
-
-`all` 方便但会伤性能（所有属性都跟踪）。真实项目列出具体属性更好。
-
-### 8.3 关键帧动画
-
-```css
-@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-.loading { animation: spin 1s linear infinite; }
-
-@keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.enter { animation: fade-in 200ms ease both; }
-```
-
-`animation-fill-mode: both` 让起止状态都保留。复杂动画用 `framer-motion` 更舒服，但底层还是 transform + opacity。
-
-### 8.4 陷阱
-
-- 动画期间不要改 width/height/top/left——会触发 layout，掉帧。
-- 在 display: none 的元素上 transition 没用，要先 block 再下一个 frame 触发变化。React 里常见解法：条件渲染 + `requestAnimationFrame` 或用 `framer-motion` 的 `AnimatePresence`。
-- `will-change: transform` 提示浏览器提前准备图层，但滥用反而耗内存。
-
-## 九、Overflow、滚动、Scrollbar
-
-```css
-.panel { overflow: auto; }            /* 超出时出现滚动条 */
-.panel { overflow-y: auto; overflow-x: hidden; }
-.panel { scroll-behavior: smooth; }   /* JS scroll 平滑 */
-.panel { overscroll-behavior: contain; } /* 阻止滚动穿透 */
-```
-
-CSS 滚动条：
-
-```css
-/* WebKit (Tauri WebView 在 mac 上是 WebKit，Win 上是 Blink) */
-.panel::-webkit-scrollbar { width: 8px; }
-.panel::-webkit-scrollbar-thumb { background: #666; border-radius: 4px; }
-
-/* Firefox / 未来规范 */
-.panel { scrollbar-width: thin; scrollbar-color: #666 transparent; }
-```
-
-CloudTone 把滚动条做得很细，视觉干扰小。
-
-## 十、现代 CSS 新特性值得记住
-
-| 特性 | 作用 | 兼容 |
-| --- | --- | --- |
-| `:has()` | 父选择器 | WebView 现代版支持 |
-| `:is()` / `:where()` | 分组选择器 | 全支持 |
-| `@layer` | 显式层叠层 | 全支持 |
-| CSS Nesting | 原生嵌套 | 全支持 |
-| `@container` | 容器查询 | 全支持 |
-| `aspect-ratio` | 定宽高比 | 全支持 |
-| `gap` on Flex | flex 容器的 gap | 全支持 |
-| `inset` | top/right/bottom/left 简写 | 全支持 |
-| `clamp(min, val, max)` | 三值夹取 | 全支持 |
-| `accent-color` | 表单控件配色 | 全支持 |
-
-`clamp` 做响应式字号特别香：
-
-```css
-h1 { font-size: clamp(20px, 2vw + 12px, 36px); }
-```
-
-## 十一、调试 CSS 的方法论
-
-1. **DevTools Element 面板**：查看"Computed"是谁赢了，看"Box Model"确认实际尺寸。
-2. **`outline: 1px solid red`**：比 border 更好用——不占盒子空间，加了也不会改变布局。
-3. **背景色排查层级**：给嫌疑容器加显眼背景，一眼看出边界。
-4. **`display: flex` 的子项神秘失踪**：检查 `overflow`、`flex-shrink: 0`、`width: 0`。
-5. **position: fixed 定位错位**：看祖先链上是否有 `transform` / `filter` / `will-change` 创建了新的包含块。
-6. **层级 bug**：挨个检查 `position`、`z-index`、`opacity < 1`，画 stacking context。
-
-## 十二、完整实战：CloudTone Shell 骨架
+### 9.1 最常见用法：右上角的关闭按钮
 
 ```html
-<div class="shell">
-  <aside class="sidebar">...</aside>
-  <header class="titlebar">...</header>
-  <main class="content">...</main>
-  <aside class="panel">...</aside>
-  <footer class="player">...</footer>
+<style>
+  .dialog {
+    position: relative;       /* 让自己成为"定位参照物" */
+    width: 300px;
+    padding: 20px;
+    background: white;
+    border: 1px solid #ddd;
+  }
+  .close {
+    position: absolute;       /* 相对 .dialog 定位 */
+    top: 8px;
+    right: 8px;
+  }
+</style>
+
+<div class="dialog">
+  <button class="close">×</button>
+  <p>这是一个对话框</p>
 </div>
 ```
 
+**关键规则**：想让子元素 `position: absolute` 相对某个父元素定位，**父元素必须有 `position: relative`**（或其他非 static 值）。
+
+### 9.2 z-index：谁盖在谁上面
+
 ```css
-.shell {
-  display: grid;
-  height: 100vh;
-  grid-template-columns: 240px 1fr 320px;
-  grid-template-rows: 40px 1fr 80px;
-  grid-template-areas:
-    "sidebar titlebar titlebar"
-    "sidebar content  panel"
-    "player  player   player";
+.overlay { position: fixed; z-index: 100; }
+.modal { position: fixed; z-index: 200; }   /* modal 在 overlay 上层 */
+```
+
+`z-index` 只对**非 static 定位**的元素有效。数字大的在上面。
+
+## 十、过渡与动画
+
+鼠标悬停时让按钮颜色渐变，而不是瞬间跳变——这叫"过渡"（transition）。
+
+```css
+.btn {
+  background: #4f46e5;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  transition: background 200ms ease, transform 200ms ease;
+  /* 对这两个属性的变化，持续 200ms，缓动曲线 ease */
+}
+.btn:hover {
+  background: #6366f1;
+  transform: scale(1.05);     /* 鼠标悬停时放大 5% */
+}
+```
+
+`transform` 能做放大、旋转、平移，且**不会引起重新布局**，性能最好：
+
+```css
+transform: scale(1.2);              /* 放大到 1.2 倍 */
+transform: rotate(45deg);           /* 旋转 45 度 */
+transform: translateX(10px);        /* 水平移动 */
+transform: scale(1.05) rotate(3deg);/* 组合多个 */
+```
+
+循环动画用 `@keyframes`：
+
+```css
+@keyframes spin {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+```
+
+`infinite` 表示无限循环，这就是加载转圈圈。
+
+## 十一、响应式：适配不同宽度
+
+窗口宽度不同，布局也应该变。用 `@media`：
+
+```css
+.sidebar { width: 240px; }
+
+@media (max-width: 1024px) {         /* 屏幕宽 ≤ 1024 时 */
+  .sidebar { width: 56px; }          /* 侧栏折叠成图标条 */
+}
+
+@media (max-width: 768px) {          /* 更窄时 */
+  .sidebar { display: none; }        /* 直接隐藏 */
+}
+```
+
+**跟随系统暗色主题**：
+
+```css
+@media (prefers-color-scheme: dark) {
+  body { background: #1a1a1a; color: #eee; }
+}
+```
+
+## 十二、CSS 变量：一处改，处处变
+
+```css
+:root {
+  --brand: #4f46e5;
+  --bg: #f5f5f7;
+  --radius: 8px;
+}
+
+.btn {
+  background: var(--brand);
+  border-radius: var(--radius);
+}
+.card {
   background: var(--bg);
-  color: var(--fg);
-}
-.sidebar  { grid-area: sidebar;  overflow-y: auto; }
-.titlebar { grid-area: titlebar; -webkit-app-region: drag; }
-.content  { grid-area: content;  overflow-y: auto; }
-.panel    { grid-area: panel;    overflow-y: auto; }
-.player   { grid-area: player;   border-top: 1px solid #ffffff10; }
-
-@media (max-width: 1024px) {
-  .shell { grid-template-columns: 56px 1fr 0; grid-template-areas:
-    "sidebar titlebar titlebar"
-    "sidebar content  content"
-    "player  player   player"; }
-  .panel { display: none; }
+  border-radius: var(--radius);
 }
 ```
 
-这就是 CloudTone 主界面的基础。第 23 章会在这之上换成 Tailwind 写法。
+`--xxx` 就是自定义变量，`var(--xxx)` 取值。改 `:root` 里一个值，所有用到的地方都跟着变。**这是现代主题系统的基础**。
 
-## 十三、陷阱与最佳实践合辑
-
-- 永远别在同一个元素上同时用 Flex 和 margin: auto 以外的定位，避免行为歧义。
-- 滚动容器要有显式 height（`h-full`、`flex-1 min-h-0`），否则永远不滚动。
-- `100vh` 在移动端等于"加上了地址栏时的高度"，用 `100dvh` 替代。Tauri 桌面通常无此问题，但为跨平台保留一致行为推荐用 dvh。
-- 大面积背景图片 prefer `background-image` + `background-size: cover` 而不是 `<img>`，避免 DOM 节点过多。
-- 不要给可能变化尺寸的元素加 `transition: height`——会触发 reflow；改用 `transition: max-height`，或用 `grid-template-rows: 0fr -> 1fr` 的现代技巧。
-- 动画跟随系统 reduce-motion：
+切换主题：
 
 ```css
-@media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
+:root { --bg: #fff; --fg: #000; }
+.theme-dark { --bg: #1a1a1a; --fg: #eee; }
 ```
+
+```js
+document.body.classList.toggle("theme-dark");
+```
+
+## 十三、实战：CloudTone 主界面骨架
+
+把前面学的东西组合起来，这就是 CloudTone 的界面骨架：
+
+```html
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "PingFang SC", sans-serif; }
+
+  :root {
+    --bg: #0f0f14;
+    --fg: #f2f2f7;
+    --panel: #1a1a22;
+    --accent: #4f46e5;
+  }
+
+  .shell {
+    display: grid;
+    height: 100vh;
+    grid-template-columns: 240px 1fr 320px;
+    grid-template-rows: 40px 1fr 80px;
+    grid-template-areas:
+      "sidebar titlebar titlebar"
+      "sidebar content  panel"
+      "player  player   player";
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  .sidebar  { grid-area: sidebar;  background: var(--panel); padding: 16px; overflow-y: auto; }
+  .titlebar { grid-area: titlebar; border-bottom: 1px solid #ffffff10; display: flex; align-items: center; padding: 0 16px; }
+  .content  { grid-area: content;  padding: 24px; overflow-y: auto; }
+  .panel    { grid-area: panel;    background: var(--panel); padding: 16px; overflow-y: auto; }
+  .player   { grid-area: player;   background: var(--panel); border-top: 1px solid #ffffff10; display: flex; align-items: center; padding: 0 16px; gap: 16px; }
+
+  /* 窄屏：侧栏变图标条，右侧面板隐藏 */
+  @media (max-width: 1024px) {
+    .shell {
+      grid-template-columns: 56px 1fr 0;
+      grid-template-areas:
+        "sidebar titlebar titlebar"
+        "sidebar content  content"
+        "player  player   player";
+    }
+    .panel { display: none; }
+  }
+</style>
+
+<div class="shell">
+  <aside class="sidebar">导航</aside>
+  <header class="titlebar">CloudTone</header>
+  <main class="content">主内容区</main>
+  <aside class="panel">右侧面板</aside>
+  <footer class="player">播放器</footer>
+</div>
+```
+
+把它存成 `index.html` 打开，拖拽窗口大小观察变化。**你已经写出了 CloudTone 主界面的骨架**。
+
+## 十四、调试 CSS 的方法论
+
+当样式不符合预期，**打开浏览器开发者工具**（F12 或右键 → 检查）：
+
+1. **Elements 面板**：点任一元素，右边显示它命中的所有 CSS 规则。**被划掉的**就是被覆盖了。
+2. **Computed 面板**：显示最终生效的值，不管来自哪条规则。
+3. **Box Model 图**：显示这个元素真实的 margin/border/padding/content 尺寸。
+4. **临时加样式**：可以直接在右边面板改数字看效果，不用回编辑器。
+
+排查技巧：
+
+- 拿不准元素边界 → 加 `outline: 1px solid red`（不占空间，不影响布局）。
+- 层级不对 → 检查 `position`、`z-index`、有没有父元素 `transform` 创建新层叠上下文。
+- Flex 子项被挤压 → 加 `flex-shrink: 0` 或 `min-width: 0`。
+
+## 十五、语义化与可访问性（简介）
+
+写"差不多能看"的页面用 `<div>` 就够。但正式项目建议：
+
+- 顶部用 `<header>`，导航用 `<nav>`，主要内容用 `<main>`，侧栏 `<aside>`，底部 `<footer>`。
+- 按钮一定用 `<button>`，不要用"可点击的 `<div>`"——前者键盘 Tab 能聚焦、Enter/Space 能触发，后者什么都没有。
+- 图标按钮加 `aria-label`：`<button aria-label="播放">▶</button>`。
+- 图片写 `alt`：`<img src="cover.jpg" alt="专辑封面：起风了" />`，装饰图写空的 `alt=""`。
+
+这些是给屏幕阅读器用户和搜索引擎看的，**不影响视觉效果但极大提升体验和可维护性**。
+
+## 十六、常见陷阱速查
+
+- `width: 100%` + `padding` 会超出父宽 → **一定要加** `box-sizing: border-box`。
+- 垂直居中失败 → 父容器没高度，或者忘了 `align-items: center`。
+- `position: absolute` 定位不对 → 父元素没 `position: relative`。
+- `z-index` 无效 → 那个元素必须是 `position` 非 static。
+- margin 上下不叠加 → 叫"**margin 折叠**"，相邻垂直 margin 取较大值，是正常行为；用 padding 或 Flex 容器可避免。
+- 滚动条一直不出现 → 容器必须有**固定高度**，`overflow: auto` 才会生效。
 
 ## 本章小结
 
-HTML 是 DOM 树和语义；CSS 是选择器、层叠、盒模型、布局（Flex/Grid/Position）、主题（变量）、动效（transform/transition）。掌握这六块，你不再"靠直觉调样式"，而是能用规则推理出结果。
+- HTML = 页面**结构**（标签 + 嵌套 + 属性）。
+- CSS = 页面**外观**（选择器 + 盒模型 + 布局 + 主题）。
+- 布局三把斧：**文档流**处理简单情况、**Flex** 解决一维、**Grid** 解决二维。
+- 调试靠开发者工具 Elements 面板。
 
-下一章，JavaScript 与 TypeScript 深度指南。
+**建议练习**：把本章每个"动手试试"都亲手敲一遍，再把第十三节的 CloudTone 骨架抄一遍。抄完你就有了独立实现任何 UI 界面的能力。
+
+下一章进入 **JavaScript**——让页面真正"动起来"。
